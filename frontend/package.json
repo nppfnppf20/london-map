@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
+    "@sveltejs/adapter-static": "^3.0.10",
     "leaflet": "^1.9.4"
   },
   "type": "module"
