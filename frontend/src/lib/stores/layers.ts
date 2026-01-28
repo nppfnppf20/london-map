@@ -1,14 +1,31 @@
-import { writable } from 'svelte/store';
-import { ROUTE_COLORS } from '$utils/map-helpers';
+import { writable, get } from 'svelte/store';
+import { routesStore } from '$stores/routes';
 import type { LayerState } from '$types';
 
-// Build initial state from ROUTE_COLORS — all routes visible by default
-const initialState: LayerState = Object.fromEntries(
-	Object.keys(ROUTE_COLORS).map(route => [route, true])
-);
+function buildState(): LayerState {
+	const routes = get(routesStore);
+	const state: LayerState = {};
+	for (const name of Object.keys(routes)) {
+		state[name] = true;
+	}
+	return state;
+}
 
 function createLayerStore() {
-	const { subscribe, update } = writable<LayerState>(initialState);
+	const { subscribe, set, update } = writable<LayerState>(buildState());
+
+	// When routes change, add any new routes as visible layers
+	routesStore.subscribe(routes => {
+		update(state => {
+			const next = { ...state };
+			for (const name of Object.keys(routes)) {
+				if (next[name] === undefined) {
+					next[name] = true;
+				}
+			}
+			return next;
+		});
+	});
 
 	return {
 		subscribe,

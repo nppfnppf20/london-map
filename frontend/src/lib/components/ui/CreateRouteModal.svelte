@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { placesStore } from '$stores/places';
-	import { mapStore } from '$stores/map';
+	import { routeBuilder } from '$stores/routeBuilder';
 	import { routesStore } from '$stores/routes';
-	import { CATEGORY_LABELS } from '$utils/map-helpers';
-	import type { Category, Priority } from '$types';
+	import { COLOR_SWATCHES } from '$utils/map-helpers';
 
 	interface Props {
 		open: boolean;
@@ -13,23 +11,12 @@
 	let { open, onClose }: Props = $props();
 
 	let name = $state('');
-	let description = $state('');
-	let route = $state('');
-	let category = $state<Category>('history');
-	let priority = $state<Priority>('route');
-	let tagsInput = $state('');
-	let saving = $state(false);
+	let selectedColor = $state(COLOR_SWATCHES[0].value);
 	let error = $state('');
-
-	const categories = Object.entries(CATEGORY_LABELS) as [Category, string][];
 
 	function reset() {
 		name = '';
-		description = '';
-		route = '';
-		category = 'history';
-		priority = 'route';
-		tagsInput = '';
+		selectedColor = COLOR_SWATCHES[0].value;
 		error = '';
 	}
 
@@ -50,41 +37,20 @@
 		}
 	}
 
-	async function handleSubmit() {
-		if (!name.trim()) {
-			error = 'Name is required';
+	function handleStart() {
+		const trimmed = name.trim();
+		if (!trimmed) {
+			error = 'Route name is required';
 			return;
 		}
 
-		saving = true;
-		error = '';
+		// Register the new route colour
+		routesStore.add(trimmed, selectedColor);
 
-		const tags = tagsInput
-			.split(',')
-			.map(t => t.trim())
-			.filter(t => t.length > 0);
+		// Enter plotting mode
+		routeBuilder.start(trimmed, selectedColor);
 
-		const [lat, lng] = $mapStore.center;
-
-		const result = await placesStore.create({
-			name: name.trim(),
-			description: description.trim() || null,
-			latitude: lat,
-			longitude: lng,
-			category,
-			priority,
-			route: route || null,
-			tour_stop: null,
-			tags
-		});
-
-		saving = false;
-
-		if (result) {
-			handleClose();
-		} else {
-			error = 'Failed to save point. Please try again.';
-		}
+		handleClose();
 	}
 </script>
 
@@ -96,7 +62,7 @@
 	<div class="backdrop" onclick={handleBackdropClick}>
 		<div class="modal">
 			<div class="header">
-				<h2>Add Point</h2>
+				<h2>Create Route</h2>
 				<button class="close-btn" onclick={handleClose} aria-label="Close">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -104,81 +70,43 @@
 				</button>
 			</div>
 
-			<form class="form" onsubmit={e => { e.preventDefault(); handleSubmit(); }}>
+			<form class="form" onsubmit={e => { e.preventDefault(); handleStart(); }}>
 				<div class="field">
-					<label for="point-name">Name</label>
+					<label for="route-name">Route Name</label>
 					<input
-						id="point-name"
+						id="route-name"
 						type="text"
 						bind:value={name}
-						placeholder="e.g. St Paul's Cathedral"
+						placeholder="e.g. South Bank Stroll"
 						required
 					/>
 				</div>
 
 				<div class="field">
-					<label for="point-route">Tour</label>
-					<select id="point-route" bind:value={route}>
-						<option value="">None</option>
-						{#each Object.keys($routesStore) as r}
-							<option value={r}>{r}</option>
+					<label>Colour</label>
+					<div class="swatches">
+						{#each COLOR_SWATCHES as swatch}
+							<button
+								type="button"
+								class="swatch"
+								class:selected={selectedColor === swatch.value}
+								style="background-color: {swatch.value}"
+								onclick={() => selectedColor = swatch.value}
+								aria-label={swatch.name}
+							></button>
 						{/each}
-					</select>
-				</div>
-
-				<div class="row">
-					<div class="field">
-						<label for="point-category">Category</label>
-						<select id="point-category" bind:value={category}>
-							{#each categories as [value, label]}
-								<option {value}>{label}</option>
-							{/each}
-						</select>
-					</div>
-
-					<div class="field">
-						<label for="point-priority">Type</label>
-						<select id="point-priority" bind:value={priority}>
-							<option value="site">Site</option>
-							<option value="route">Route</option>
-						</select>
 					</div>
 				</div>
-
-				<div class="field">
-					<label for="point-description">Description</label>
-					<textarea
-						id="point-description"
-						bind:value={description}
-						placeholder="Describe this place..."
-						rows="3"
-					></textarea>
-				</div>
-
-				<div class="field">
-					<label for="point-tags">Tags</label>
-					<input
-						id="point-tags"
-						type="text"
-						bind:value={tagsInput}
-						placeholder="e.g. church, wren, baroque"
-					/>
-					<span class="hint">Comma-separated</span>
-				</div>
-
-				<p class="coord-info">
-					Point will be placed at the current map centre.
-				</p>
 
 				{#if error}
 					<p class="error">{error}</p>
 				{/if}
 
+				<p class="hint">After pressing Start, tap markers on the map to add them as stops in order.</p>
+
 				<div class="actions">
 					<button type="button" class="btn-cancel" onclick={handleClose}>Cancel</button>
-					<button type="submit" class="btn-save" disabled={saving}>
-						{saving ? 'Saving...' : 'Add Point'}
-					</button>
+					<button type="submit" class="btn-start">Start</button>
 				</div>
 			</form>
 		</div>
@@ -200,8 +128,7 @@
 	.modal {
 		background: white;
 		width: 100%;
-		max-width: 440px;
-		max-height: 85vh;
+		max-width: 400px;
 		border-radius: var(--radius-lg);
 		display: flex;
 		flex-direction: column;
@@ -241,13 +168,10 @@
 	}
 
 	.form {
-		flex: 1;
-		overflow-y: auto;
 		padding: var(--spacing-lg);
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
-		-webkit-overflow-scrolling: touch;
 	}
 
 	.field {
@@ -262,9 +186,7 @@
 		color: #374151;
 	}
 
-	.field input,
-	.field select,
-	.field textarea {
+	.field input {
 		padding: 10px 12px;
 		border: 1px solid #d1d5db;
 		border-radius: var(--radius-md);
@@ -275,34 +197,38 @@
 		-webkit-appearance: none;
 	}
 
-	.field input:focus,
-	.field select:focus,
-	.field textarea:focus {
+	.field input:focus {
 		outline: none;
 		border-color: var(--color-highlight);
 		box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
 	}
 
-	.field textarea {
-		resize: vertical;
-		min-height: 60px;
-	}
-
-	.row {
+	.swatches {
 		display: flex;
-		gap: var(--spacing-md);
+		gap: var(--spacing-sm);
+		flex-wrap: wrap;
 	}
 
-	.row .field {
-		flex: 1;
+	.swatch {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: 3px solid transparent;
+		cursor: pointer;
+		transition: transform 0.1s ease-out;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.swatch.selected {
+		border-color: var(--color-primary);
+		transform: scale(1.15);
+	}
+
+	.swatch:active {
+		transform: scale(0.92);
 	}
 
 	.hint {
-		font-size: 12px;
-		color: #9ca3af;
-	}
-
-	.coord-info {
 		font-size: 13px;
 		color: #6b7280;
 		background: #f9fafb;
@@ -325,7 +251,7 @@
 	}
 
 	.btn-cancel,
-	.btn-save {
+	.btn-start {
 		flex: 1;
 		padding: 12px;
 		border-radius: var(--radius-md);
@@ -343,17 +269,12 @@
 		background: #e5e7eb;
 	}
 
-	.btn-save {
+	.btn-start {
 		background: var(--color-highlight);
 		color: white;
 	}
 
-	.btn-save:active:not(:disabled) {
+	.btn-start:active {
 		opacity: 0.85;
-	}
-
-	.btn-save:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 </style>

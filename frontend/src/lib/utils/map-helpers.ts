@@ -1,16 +1,12 @@
 import type { Category } from '$types';
+import { get } from 'svelte/store';
+import { routesStore } from '$stores/routes';
 
 export const CATEGORY_COLORS: Record<Category, string> = {
 	history: '#3b82f6',
 	architecture: '#8b5cf6',
 	food: '#f97316',
 	pub: '#f59e0b'
-};
-
-export const ROUTE_COLORS: Record<string, string> = {
-	'Holborn Churches Route': '#8b5cf6',    // Purple
-	'Ancient City Tour': '#dc2626',          // Red
-	'Mayfair Rainy Stroll': '#22c55e'        // Green
 };
 
 export const CATEGORY_LABELS: Record<Category, string> = {
@@ -26,7 +22,8 @@ export function getCategoryColor(category: Category): string {
 
 export function getRouteColor(route: string | null): string {
 	if (!route) return '#6b7280';
-	return ROUTE_COLORS[route] || '#6b7280';
+	const routes = get(routesStore);
+	return routes[route] || '#6b7280';
 }
 
 export function createMarkerIcon(category: Category): string {
@@ -38,3 +35,14 @@ export function createMarkerIcon(category: Category): string {
 		</svg>
 	`;
 }
+
+export const COLOR_SWATCHES = [
+	{ name: 'Red', value: '#dc2626' },
+	{ name: 'Orange', value: '#f97316' },
+	{ name: 'Amber', value: '#f59e0b' },
+	{ name: 'Green', value: '#22c55e' },
+	{ name: 'Teal', value: '#14b8a6' },
+	{ name: 'Blue', value: '#3b82f6' },
+	{ name: 'Purple', value: '#8b5cf6' },
+	{ name: 'Pink', value: '#ec4899' }
+];

@@ -1,13 +1,8 @@
 <script lang="ts">
 	import { layerStore } from '$stores/layers';
-	import { ROUTE_COLORS } from '$utils/map-helpers';
+	import { routesStore } from '$stores/routes';
 
 	let expanded = false;
-
-	const routes = Object.entries(ROUTE_COLORS).map(([name, color]) => ({
-		name,
-		color
-	}));
 
 	function toggleExpand() {
 		expanded = !expanded;
@@ -25,15 +20,15 @@
 
 	{#if expanded}
 		<div class="layer-list">
-			{#each routes as route}
+			{#each Object.entries($routesStore) as [name, color]}
 				<label class="layer-item">
 					<input
 						type="checkbox"
-						checked={$layerStore[route.name]}
-						onchange={() => layerStore.toggle(route.name)}
+						checked={$layerStore[name]}
+						onchange={() => layerStore.toggle(name)}
 					/>
-					<span class="color-dot" style="background-color: {route.color}"></span>
-					<span class="label">{route.name}</span>
+					<span class="color-dot" style="background-color: {color}"></span>
+					<span class="label">{name}</span>
 				</label>
 			{/each}
 		</div>

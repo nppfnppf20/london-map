@@ -79,6 +79,7 @@ export async function updatePlace(id: string, dto: UpdatePlaceDto): Promise<Plac
 	if (dto.category !== undefined) updateData.category = dto.category;
 	if (dto.priority !== undefined) updateData.priority = dto.priority;
 	if (dto.route !== undefined) updateData.route = dto.route;
+	if (dto.tour_stop !== undefined) updateData.tour_stop = dto.tour_stop;
 	if (dto.tags !== undefined) updateData.tags = dto.tags;
 
 	const { data, error } = await supabase

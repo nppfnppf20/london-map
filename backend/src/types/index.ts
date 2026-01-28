@@ -35,7 +35,8 @@ export interface UpdatePlaceDto {
 	longitude?: number;
 	category?: Category;
 	priority?: Priority;
-	route?: string;
+	route?: string | null;
+	tour_stop?: number | null;
 	tags?: string[];
 }
 
