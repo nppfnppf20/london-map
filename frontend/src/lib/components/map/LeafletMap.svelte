@@ -5,56 +5,111 @@
 	import { placesStore } from '$stores/places';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
-	import { getRouteColor } from '$utils/map-helpers';
+	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
 	import type L from 'leaflet';
-	import type { Place } from '$types';
+	import type { Place, LayerState } from '$types';
 
 	let mapContainer: HTMLDivElement;
 	let map: L.Map | null = null;
 	let leaflet: typeof L;
 	let markers: Map<string, L.Marker> = new Map();
 
-	function createIcon(place: Place) {
-		const color = getRouteColor(place.route);
-		const isSite = place.priority === 'site';
-
-		// Build optional stop number badge
-		let badge = '';
-		if (place.tour_stop != null) {
-			badge = `<div style="
-				position: absolute;
-				top: -8px;
-				right: -8px;
-				width: 20px;
-				height: 20px;
-				background: white;
-				color: ${color};
-				border-radius: 50%;
-				font-size: 11px;
-				font-weight: 700;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-				line-height: 1;
-			">${place.tour_stop}</div>`;
+	// Determine how a place should render given current layer state
+	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
+		// Route layer takes priority if toggled on
+		if (place.route && layers.routes[place.route]) {
+			return 'route';
 		}
+		// Otherwise show as a site if its category is on
+		if (layers.sites[place.category]) {
+			return 'site';
+		}
+		return 'hidden';
+	}
+
+	function createIcon(place: Place, mode: 'route' | 'site') {
+		if (mode === 'route') {
+			const color = getRouteColor(place.route);
+			const isSite = place.priority === 'site';
+
+			let badge = '';
+			if (place.tour_stop != null) {
+				badge = `<div style="
+					position: absolute;
+					top: -8px;
+					right: -8px;
+					width: 20px;
+					height: 20px;
+					background: white;
+					color: ${color};
+					border-radius: 50%;
+					font-size: 11px;
+					font-weight: 700;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+					line-height: 1;
+				">${place.tour_stop}</div>`;
+			}
+
+			if (isSite) {
+				return leaflet.divIcon({
+					className: 'custom-marker site-marker',
+					html: `<div style="position:relative;">
+						<div style="
+							width: 32px;
+							height: 32px;
+							background: ${color};
+							border: 4px solid white;
+							border-radius: 50% 50% 50% 0;
+							transform: rotate(-45deg);
+							box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+						"></div>
+						${badge}
+					</div>`,
+					iconSize: [32, 32],
+					iconAnchor: [16, 32],
+					popupAnchor: [0, -32]
+				});
+			}
+
+			return leaflet.divIcon({
+				className: 'custom-marker route-marker',
+				html: `<div style="position:relative;">
+					<div style="
+						width: 16px;
+						height: 16px;
+						background: ${color};
+						border: 2px solid white;
+						border-radius: 50%;
+						box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+						opacity: 0.85;
+					"></div>
+					${badge}
+				</div>`,
+				iconSize: [16, 16],
+				iconAnchor: [8, 8],
+				popupAnchor: [0, -8]
+			});
+		}
+
+		// Site mode — category colour, no badge
+		const color = getCategoryColor(place.category);
+		const isSite = place.priority === 'site';
 
 		if (isSite) {
 			return leaflet.divIcon({
 				className: 'custom-marker site-marker',
-				html: `<div style="position:relative;">
-					<div style="
-						width: 32px;
-						height: 32px;
-						background: ${color};
-						border: 4px solid white;
-						border-radius: 50% 50% 50% 0;
-						transform: rotate(-45deg);
-						box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-					"></div>
-					${badge}
-				</div>`,
+				html: `<div style="
+					width: 32px;
+					height: 32px;
+					background: ${color};
+					border: 4px solid white;
+					border-radius: 50% 50% 50% 0;
+					transform: rotate(-45deg);
+					box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+				"></div>`,
 				iconSize: [32, 32],
 				iconAnchor: [16, 32],
 				popupAnchor: [0, -32]
@@ -63,18 +118,15 @@
 
 		return leaflet.divIcon({
 			className: 'custom-marker route-marker',
-			html: `<div style="position:relative;">
-				<div style="
-					width: 16px;
-					height: 16px;
-					background: ${color};
-					border: 2px solid white;
-					border-radius: 50%;
-					box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-					opacity: 0.85;
-				"></div>
-				${badge}
-			</div>`,
+			html: `<div style="
+				width: 16px;
+				height: 16px;
+				background: ${color};
+				border: 2px solid white;
+				border-radius: 50%;
+				box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+				opacity: 0.85;
+			"></div>`,
 			iconSize: [16, 16],
 			iconAnchor: [8, 8],
 			popupAnchor: [0, -8]
@@ -92,50 +144,50 @@
 	function addMarker(place: Place) {
 		if (!map) return;
 
-		// If marker exists, update its icon (place data may have changed)
+		const layers = $layerStore;
+		const mode = getDisplayMode(place, layers);
+
 		if (markers.has(place.id)) {
 			const existing = markers.get(place.id)!;
-			existing.setIcon(createIcon(place));
+			if (mode === 'hidden') {
+				if (map.hasLayer(existing)) existing.remove();
+			} else {
+				existing.setIcon(createIcon(place, mode));
+				if (!map.hasLayer(existing)) existing.addTo(map);
+			}
 			return;
 		}
 
+		// First time — create the marker
 		const marker = leaflet.marker([place.latitude, place.longitude], {
-			icon: createIcon(place),
+			icon: createIcon(place, mode === 'hidden' ? 'site' : mode),
 			zIndexOffset: place.priority === 'site' ? 1000 : 0
 		});
 
 		marker.on('click', () => handleMarkerClick(place));
-
 		markers.set(place.id, marker);
 
-		// Check if this place's route layer is visible
-		const layerState = $layerStore;
-		if (place.route && layerState[place.route] !== false) {
-			marker.addTo(map);
-		} else if (!place.route) {
+		if (mode !== 'hidden') {
 			marker.addTo(map);
 		}
 	}
 
-	function updateMarkerVisibility() {
+	function updateMarkers() {
 		if (!map) return;
 
-		const layerState = $layerStore;
+		const layers = $layerStore;
 
 		markers.forEach((marker, id) => {
 			const place = $placesStore.places.find(p => p.id === id);
 			if (!place) return;
 
-			const visible = place.route ? layerState[place.route] !== false : true;
+			const mode = getDisplayMode(place, layers);
 
-			if (visible) {
-				if (!map!.hasLayer(marker)) {
-					marker.addTo(map!);
-				}
+			if (mode === 'hidden') {
+				if (map!.hasLayer(marker)) marker.remove();
 			} else {
-				if (map!.hasLayer(marker)) {
-					marker.remove();
-				}
+				marker.setIcon(createIcon(place, mode));
+				if (!map!.hasLayer(marker)) marker.addTo(map!);
 			}
 		});
 	}
@@ -185,12 +237,12 @@
 		markers.clear();
 	});
 
-	// React to layer changes
+	// React to layer changes — update visibility AND icons
 	$: if (map && $layerStore) {
-		updateMarkerVisibility();
+		updateMarkers();
 	}
 
-	// React to place data changes (new places or updated fields)
+	// React to place data changes
 	$: if (map && leaflet && $placesStore.places) {
 		$placesStore.places.forEach(addMarker);
 	}

@@ -35,7 +35,8 @@ export interface TourStop {
 }
 
 export interface LayerState {
-	[routeName: string]: boolean;
+	sites: Record<Category, boolean>;
+	routes: Record<string, boolean>;
 }
 
 export interface MapState {

@@ -1,8 +1,17 @@
 <script lang="ts">
 	import { layerStore } from '$stores/layers';
 	import { routesStore } from '$stores/routes';
+	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
+	import type { Category } from '$types';
 
 	let expanded = false;
+
+	const categories: { key: Category; label: string; color: string }[] = [
+		{ key: 'history', label: CATEGORY_LABELS.history, color: CATEGORY_COLORS.history },
+		{ key: 'architecture', label: CATEGORY_LABELS.architecture, color: CATEGORY_COLORS.architecture },
+		{ key: 'food', label: CATEGORY_LABELS.food, color: CATEGORY_COLORS.food },
+		{ key: 'pub', label: CATEGORY_LABELS.pub, color: CATEGORY_COLORS.pub }
+	];
 
 	function toggleExpand() {
 		expanded = !expanded;
@@ -20,17 +29,39 @@
 
 	{#if expanded}
 		<div class="layer-list">
-			{#each Object.entries($routesStore) as [name, color]}
-				<label class="layer-item">
-					<input
-						type="checkbox"
-						checked={$layerStore[name]}
-						onchange={() => layerStore.toggle(name)}
-					/>
-					<span class="color-dot" style="background-color: {color}"></span>
-					<span class="label">{name}</span>
-				</label>
-			{/each}
+			<div class="section">
+				<span class="section-title disabled">Collections</span>
+			</div>
+
+			<div class="section">
+				<span class="section-title">Sites</span>
+				{#each categories as cat}
+					<label class="layer-item">
+						<input
+							type="checkbox"
+							checked={$layerStore.sites[cat.key]}
+							onchange={() => layerStore.toggleSite(cat.key)}
+						/>
+						<span class="color-dot" style="background-color: {cat.color}"></span>
+						<span class="label">{cat.label}</span>
+					</label>
+				{/each}
+			</div>
+
+			<div class="section">
+				<span class="section-title">Routes</span>
+				{#each Object.entries($routesStore) as [name, color]}
+					<label class="layer-item">
+						<input
+							type="checkbox"
+							checked={$layerStore.routes[name]}
+							onchange={() => layerStore.toggleRoute(name)}
+						/>
+						<span class="color-dot" style="background-color: {color}"></span>
+						<span class="label">{name}</span>
+					</label>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>
@@ -72,14 +103,41 @@
 		border-radius: var(--radius-md);
 		padding: var(--spacing-sm);
 		box-shadow: var(--shadow-lg);
-		min-width: 200px;
+		min-width: 210px;
+		max-height: 70vh;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.section {
+		padding: var(--spacing-xs) 0;
+	}
+
+	.section + .section {
+		border-top: 1px solid #e5e7eb;
+		margin-top: var(--spacing-xs);
+		padding-top: var(--spacing-sm);
+	}
+
+	.section-title {
+		display: block;
+		font-size: 11px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #6b7280;
+		padding: var(--spacing-xs) var(--spacing-sm);
+	}
+
+	.section-title.disabled {
+		color: #d1d5db;
 	}
 
 	.layer-item {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-sm);
-		padding: var(--spacing-md) var(--spacing-sm);
+		padding: var(--spacing-sm) var(--spacing-sm);
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 		color: var(--color-primary);

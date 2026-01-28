@@ -1,26 +1,35 @@
 import { writable, get } from 'svelte/store';
 import { routesStore } from '$stores/routes';
-import type { LayerState } from '$types';
+import type { LayerState, Category } from '$types';
 
 function buildState(): LayerState {
 	const routes = get(routesStore);
-	const state: LayerState = {};
+	const routeToggles: Record<string, boolean> = {};
 	for (const name of Object.keys(routes)) {
-		state[name] = true;
+		routeToggles[name] = false;
 	}
-	return state;
+
+	return {
+		sites: {
+			history: true,
+			architecture: true,
+			food: true,
+			pub: true
+		},
+		routes: routeToggles
+	};
 }
 
 function createLayerStore() {
-	const { subscribe, set, update } = writable<LayerState>(buildState());
+	const { subscribe, update } = writable<LayerState>(buildState());
 
-	// When routes change, add any new routes as visible layers
+	// When new routes are added, ensure they appear in the routes section
 	routesStore.subscribe(routes => {
 		update(state => {
-			const next = { ...state };
+			const next = { ...state, routes: { ...state.routes } };
 			for (const name of Object.keys(routes)) {
-				if (next[name] === undefined) {
-					next[name] = true;
+				if (next.routes[name] === undefined) {
+					next.routes[name] = false;
 				}
 			}
 			return next;
@@ -29,28 +38,14 @@ function createLayerStore() {
 
 	return {
 		subscribe,
-		toggle: (route: string) => update(state => ({
+		toggleSite: (category: Category) => update(state => ({
 			...state,
-			[route]: !state[route]
+			sites: { ...state.sites, [category]: !state.sites[category] }
 		})),
-		setLayer: (route: string, visible: boolean) => update(state => ({
+		toggleRoute: (route: string) => update(state => ({
 			...state,
-			[route]: visible
-		})),
-		showAll: () => update(state => {
-			const next: LayerState = {};
-			for (const key of Object.keys(state)) {
-				next[key] = true;
-			}
-			return next;
-		}),
-		hideAll: () => update(state => {
-			const next: LayerState = {};
-			for (const key of Object.keys(state)) {
-				next[key] = false;
-			}
-			return next;
-		})
+			routes: { ...state.routes, [route]: !state.routes[route] }
+		}))
 	};
 }
 
