@@ -1,41 +1,39 @@
 import { writable } from 'svelte/store';
+import { ROUTE_COLORS } from '$utils/map-helpers';
 import type { LayerState } from '$types';
 
-const initialState: LayerState = {
-	history: true,
-	architecture: true,
-	food: true,
-	pub: true,
-	tours: false
-};
+// Build initial state from ROUTE_COLORS — all routes visible by default
+const initialState: LayerState = Object.fromEntries(
+	Object.keys(ROUTE_COLORS).map(route => [route, true])
+);
 
 function createLayerStore() {
 	const { subscribe, update } = writable<LayerState>(initialState);
 
 	return {
 		subscribe,
-		toggle: (layer: keyof LayerState) => update(state => ({
+		toggle: (route: string) => update(state => ({
 			...state,
-			[layer]: !state[layer]
+			[route]: !state[route]
 		})),
-		setLayer: (layer: keyof LayerState, visible: boolean) => update(state => ({
+		setLayer: (route: string, visible: boolean) => update(state => ({
 			...state,
-			[layer]: visible
+			[route]: visible
 		})),
-		showAll: () => update(state => ({
-			history: true,
-			architecture: true,
-			food: true,
-			pub: true,
-			tours: true
-		})),
-		hideAll: () => update(state => ({
-			history: false,
-			architecture: false,
-			food: false,
-			pub: false,
-			tours: false
-		}))
+		showAll: () => update(state => {
+			const next: LayerState = {};
+			for (const key of Object.keys(state)) {
+				next[key] = true;
+			}
+			return next;
+		}),
+		hideAll: () => update(state => {
+			const next: LayerState = {};
+			for (const key of Object.keys(state)) {
+				next[key] = false;
+			}
+			return next;
+		})
 	};
 }
 

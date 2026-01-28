@@ -6,7 +6,7 @@
 	import { selectedPlace } from '$stores/selected';
 	import { getRouteColor } from '$utils/map-helpers';
 	import type L from 'leaflet';
-	import type { Place, Category, Priority } from '$types';
+	import type { Place, Priority } from '$types';
 
 	let mapContainer: HTMLDivElement;
 	let map: L.Map | null = null;
@@ -69,9 +69,12 @@
 
 		markers.set(place.id, marker);
 
-		// Check if layer is visible
+		// Check if this place's route layer is visible
 		const layerState = $layerStore;
-		if (layerState[place.category]) {
+		if (place.route && layerState[place.route] !== false) {
+			marker.addTo(map);
+		} else if (!place.route) {
+			// Places without a route are always visible
 			marker.addTo(map);
 		}
 	}
@@ -85,7 +88,9 @@
 			const place = $placesStore.places.find(p => p.id === id);
 			if (!place) return;
 
-			if (layerState[place.category]) {
+			const visible = place.route ? layerState[place.route] !== false : true;
+
+			if (visible) {
 				if (!map!.hasLayer(marker)) {
 					marker.addTo(map!);
 				}

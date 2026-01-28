@@ -1,17 +1,13 @@
 <script lang="ts">
 	import { layerStore } from '$stores/layers';
-	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
-	import type { Category, LayerState } from '$types';
+	import { ROUTE_COLORS } from '$utils/map-helpers';
 
 	let expanded = false;
 
-	const layers: { key: keyof LayerState; label: string; color: string }[] = [
-		{ key: 'history', label: CATEGORY_LABELS.history, color: CATEGORY_COLORS.history },
-		{ key: 'architecture', label: CATEGORY_LABELS.architecture, color: CATEGORY_COLORS.architecture },
-		{ key: 'food', label: CATEGORY_LABELS.food, color: CATEGORY_COLORS.food },
-		{ key: 'pub', label: CATEGORY_LABELS.pub, color: CATEGORY_COLORS.pub },
-		{ key: 'tours', label: 'Tours', color: '#22c55e' }
-	];
+	const routes = Object.entries(ROUTE_COLORS).map(([name, color]) => ({
+		name,
+		color
+	}));
 
 	function toggleExpand() {
 		expanded = !expanded;
@@ -29,15 +25,15 @@
 
 	{#if expanded}
 		<div class="layer-list">
-			{#each layers as layer}
+			{#each routes as route}
 				<label class="layer-item">
 					<input
 						type="checkbox"
-						checked={$layerStore[layer.key]}
-						onchange={() => layerStore.toggle(layer.key)}
+						checked={$layerStore[route.name]}
+						onchange={() => layerStore.toggle(route.name)}
 					/>
-					<span class="color-dot" style="background-color: {layer.color}"></span>
-					<span class="label">{layer.label}</span>
+					<span class="color-dot" style="background-color: {route.color}"></span>
+					<span class="label">{route.name}</span>
 				</label>
 			{/each}
 		</div>
@@ -81,7 +77,7 @@
 		border-radius: var(--radius-md);
 		padding: var(--spacing-sm);
 		box-shadow: var(--shadow-lg);
-		min-width: 160px;
+		min-width: 200px;
 	}
 
 	.layer-item {

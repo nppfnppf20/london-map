@@ -35,11 +35,7 @@ export interface TourStop {
 }
 
 export interface LayerState {
-	history: boolean;
-	architecture: boolean;
-	food: boolean;
-	pub: boolean;
-	tours: boolean;
+	[routeName: string]: boolean;
 }
 
 export interface MapState {
