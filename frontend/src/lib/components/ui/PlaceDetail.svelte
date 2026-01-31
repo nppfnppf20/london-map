@@ -2,12 +2,13 @@
 	import type { Place } from '$types';
 	import { getCategoryColor, CATEGORY_LABELS } from '$utils/map-helpers';
 
-	interface Props {
-		place: Place | null;
-		onClose: () => void;
-	}
+interface Props {
+	place: Place | null;
+	onClose: () => void;
+	onAddTo: () => void;
+}
 
-	let { place, onClose }: Props = $props();
+let { place, onClose, onAddTo }: Props = $props();
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) {
@@ -50,6 +51,7 @@
 						{#if place.route_stop} · Stop {place.route_stop}{/if}
 					</p>
 				{/if}
+				<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
 				<button class="close-btn" onclick={onClose} aria-label="Close">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -155,6 +157,18 @@
 		margin: var(--spacing-xs) 0 0 0;
 		font-size: 13px;
 		color: #6b7280;
+	}
+
+	.add-to-btn {
+		margin-top: var(--spacing-md);
+		padding: 8px 12px;
+		border-radius: var(--radius-md);
+		background: #111827;
+		color: white;
+		font-size: 13px;
+		font-weight: 600;
+		width: fit-content;
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	.close-btn {

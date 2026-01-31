@@ -66,6 +66,23 @@ export async function update(req: Request, res: Response): Promise<void> {
 	}
 }
 
+export async function addCollections(req: Request, res: Response): Promise<void> {
+	try {
+		const { id } = req.params;
+		const { collection_ids } = req.body as { collection_ids?: string[] };
+
+		if (!collection_ids || !Array.isArray(collection_ids) || collection_ids.length === 0) {
+			res.status(400).json({ data: null, error: 'Missing collection_ids' });
+			return;
+		}
+
+		await placesService.addCollectionsToPlace(id, collection_ids);
+		res.status(204).send();
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Unknown error';
+		res.status(500).json({ data: null, error: message });
+	}
+}
 export async function remove(req: Request, res: Response): Promise<void> {
 	try {
 		const { id } = req.params;

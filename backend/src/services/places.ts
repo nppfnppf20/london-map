@@ -151,3 +151,23 @@ export async function deletePlace(id: string): Promise<boolean> {
 
 	return true;
 }
+
+export async function addCollectionsToPlace(placeId: string, collectionIds: string[]): Promise<void> {
+	if (collectionIds.length === 0) return;
+
+	const supabase = getSupabaseClient();
+
+	const { error } = await supabase
+		.from('place_collections')
+		.upsert(
+			collectionIds.map(collectionId => ({
+				place_id: placeId,
+				collection_id: collectionId
+			})),
+			{ onConflict: 'place_id,collection_id', ignoreDuplicates: true }
+		);
+
+	if (error) {
+		throw new Error(`Failed to link collections: ${error.message}`);
+	}
+}

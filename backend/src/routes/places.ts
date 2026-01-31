@@ -7,6 +7,7 @@ router.get('/', placesController.getAll);
 router.get('/:id', placesController.getById);
 router.post('/', placesController.create);
 router.put('/:id', placesController.update);
+router.post('/:id/collections', placesController.addCollections);
 router.delete('/:id', placesController.remove);
 
 export default router;

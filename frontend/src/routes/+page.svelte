@@ -3,6 +3,7 @@
 	import LayerControl from '$components/layers/LayerControl.svelte';
 	import PlaceDetail from '$components/ui/PlaceDetail.svelte';
 	import AddPointModal from '$components/ui/AddPointModal.svelte';
+	import AddSiteToModal from '$components/ui/AddSiteToModal.svelte';
 	import CreateRouteModal from '$components/ui/CreateRouteModal.svelte';
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
 	import { mapStore } from '$stores/map';
@@ -11,6 +12,7 @@
 
 	let addModalOpen = $state(false);
 	let routeModalOpen = $state(false);
+	let addSiteToOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
 
@@ -71,7 +73,18 @@
 		</div>
 	{/if}
 
-	<PlaceDetail place={$selectedPlace} onClose={() => selectedPlace.clear()} />
+	<PlaceDetail
+		place={$selectedPlace}
+		onClose={() => selectedPlace.clear()}
+		onAddTo={() => {
+			addSiteToOpen = true;
+		}}
+	/>
+	<AddSiteToModal
+		open={addSiteToOpen}
+		place={$selectedPlace}
+		onClose={() => { addSiteToOpen = false; }}
+	/>
 	<AddPointModal
 		open={addModalOpen}
 		coords={pinCoords}

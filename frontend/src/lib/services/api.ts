@@ -16,7 +16,16 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 		}
 	});
 
-	const result: ApiResponse<T> = await response.json();
+	if (response.status === 204) {
+		return null as T;
+	}
+
+	const raw = await response.text();
+	if (!raw) {
+		return null as T;
+	}
+
+	const result: ApiResponse<T> = JSON.parse(raw);
 
 	if (result.error) {
 		throw new Error(result.error);
@@ -52,6 +61,13 @@ export const placesApi = {
 	delete: (id: string): Promise<void> => {
 		return request<void>(`/places/${id}`, {
 			method: 'DELETE'
+		});
+	},
+
+	addCollections: (id: string, collection_ids: string[]): Promise<void> => {
+		return request<void>(`/places/${id}/collections`, {
+			method: 'POST',
+			body: JSON.stringify({ collection_ids })
 		});
 	}
 };
