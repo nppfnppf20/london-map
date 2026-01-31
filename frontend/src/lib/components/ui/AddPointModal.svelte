@@ -2,6 +2,7 @@
 	import { placesStore } from '$stores/places';
 	import { mapStore } from '$stores/map';
 	import { routesStore } from '$stores/routes';
+	import { collectionsStore } from '$stores/collections';
 	import { CATEGORY_LABELS } from '$utils/map-helpers';
 	import type { Category, Priority } from '$types';
 
@@ -9,24 +10,27 @@
 		open: boolean;
 		onClose: () => void;
 		coords?: [number, number] | null;
+		onCreateRoute?: () => void;
 	}
 
-	let { open, onClose, coords = null }: Props = $props();
+	let { open, onClose, coords = null, onCreateRoute }: Props = $props();
 
 	let name = $state('');
 	let description = $state('');
 	let route = $state('');
-	let category = $state<Category>('history');
-	let priority = $state<Priority>('route');
-	let tagsInput = $state('');
+	let category = $state<Category | ''>('');
+	let priority = $state<Priority>('site');
 	let saving = $state(false);
 	let error = $state('');
 	let location = $state<[number, number] | null>(coords);
+	let selectedCollections = $state<string[]>([]);
 
-	// Keep location in sync with the latest pin selection on open
-	$: if (open) {
-		location = coords ?? $mapStore.center;
-	}
+	$effect(() => {
+		if (open) {
+			location = coords ?? $mapStore.center;
+			collectionsStore.fetchAll();
+		}
+	});
 
 	const categories = Object.entries(CATEGORY_LABELS) as [Category, string][];
 
@@ -34,11 +38,11 @@
 		name = '';
 		description = '';
 		route = '';
-		category = 'history';
-		priority = 'route';
-		tagsInput = '';
+		category = '';
+		priority = 'site';
 		error = '';
 		location = null;
+		selectedCollections = [];
 	}
 
 	function handleClose() {
@@ -63,14 +67,13 @@
 			error = 'Name is required';
 			return;
 		}
+		if (!category) {
+			error = 'Category is required';
+			return;
+		}
 
 		saving = true;
 		error = '';
-
-		const tags = tagsInput
-			.split(',')
-			.map(t => t.trim())
-			.filter(t => t.length > 0);
 
 		const [lat, lng] = location ?? $mapStore.center;
 
@@ -79,11 +82,12 @@
 			description: description.trim() || null,
 			latitude: lat,
 			longitude: lng,
-			category,
+			category: category as Category,
 			priority,
 			route: route || null,
-			tour_stop: null,
-			tags
+			route_stop: null,
+			tags: [],
+			collection_ids: selectedCollections
 		});
 
 		saving = false;
@@ -92,6 +96,23 @@
 			handleClose();
 		} else {
 			error = 'Failed to save point. Please try again.';
+		}
+	}
+
+	function handleRouteChange(value: string) {
+		if (value === '__create__') {
+			route = '';
+			onCreateRoute?.();
+			return;
+		}
+		route = value;
+	}
+
+	function toggleCollection(id: string) {
+		if (selectedCollections.includes(id)) {
+			selectedCollections = selectedCollections.filter(existing => existing !== id);
+		} else {
+			selectedCollections = [...selectedCollections, id];
 		}
 	}
 </script>
@@ -124,31 +145,14 @@
 					/>
 				</div>
 
-				<div class="field">
-					<label for="point-route">Tour</label>
-					<select id="point-route" bind:value={route}>
-						<option value="">None</option>
-						{#each Object.keys($routesStore) as r}
-							<option value={r}>{r}</option>
-						{/each}
-					</select>
-				</div>
-
 				<div class="row">
 					<div class="field">
 						<label for="point-category">Category</label>
 						<select id="point-category" bind:value={category}>
+							<option value="" disabled>Select a category</option>
 							{#each categories as [value, label]}
 								<option {value}>{label}</option>
 							{/each}
-						</select>
-					</div>
-
-					<div class="field">
-						<label for="point-priority">Type</label>
-						<select id="point-priority" bind:value={priority}>
-							<option value="site">Site</option>
-							<option value="route">Route</option>
 						</select>
 					</div>
 				</div>
@@ -163,15 +167,44 @@
 					></textarea>
 				</div>
 
-				<div class="field">
-					<label for="point-tags">Tags</label>
-					<input
-						id="point-tags"
-						type="text"
-						bind:value={tagsInput}
-						placeholder="e.g. church, wren, baroque"
-					/>
-					<span class="hint">Comma-separated</span>
+				<div class="section">
+					<span class="section-title">Step 1 — Add to Collections</span>
+					{#if $collectionsStore.loading}
+						<p class="placeholder">Loading collections...</p>
+					{:else if $collectionsStore.collections.length === 0}
+						<p class="placeholder">No collections yet.</p>
+					{:else}
+						<div class="collection-list">
+							{#each $collectionsStore.collections as collection}
+								<label class="collection-item">
+									<input
+										type="checkbox"
+										checked={selectedCollections.includes(collection.id)}
+										onchange={() => toggleCollection(collection.id)}
+									/>
+									<span class="collection-label">{collection.name}</span>
+								</label>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<div class="section">
+					<span class="section-title">Step 2 — Add to Route</span>
+					<div class="field">
+						<label for="point-route">Route</label>
+						<select
+							id="point-route"
+							bind:value={route}
+							onchange={(e) => handleRouteChange((e.currentTarget as HTMLSelectElement).value)}
+						>
+							<option value="">None</option>
+							{#each Object.keys($routesStore) as r}
+								<option value={r}>{r}</option>
+							{/each}
+							<option value="__create__">+ Create new route...</option>
+						</select>
+					</div>
 				</div>
 
 				<p class="coord-info">
@@ -305,9 +338,49 @@
 		flex: 1;
 	}
 
-	.hint {
+	.section {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.section-title {
+		font-size: 12px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #6b7280;
+	}
+
+	.placeholder {
+		margin: 0;
 		font-size: 12px;
 		color: #9ca3af;
+		background: #f9fafb;
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border-radius: var(--radius-sm);
+	}
+
+	.collection-list {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.collection-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: 8px 10px;
+		border-radius: var(--radius-sm);
+		background: #f9fafb;
+		color: var(--color-primary);
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.collection-label {
+		font-size: 14px;
+		font-weight: 500;
 	}
 
 	.coord-info {

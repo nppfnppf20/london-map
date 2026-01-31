@@ -1,4 +1,4 @@
-import type { Place, Tour } from '$types';
+import type { Place, Route, Collection, PlaceCreateInput, PlaceUpdateInput } from '$types';
 
 const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -35,14 +35,14 @@ export const placesApi = {
 		return request<Place>(`/places/${id}`);
 	},
 
-	create: (place: Omit<Place, 'id' | 'created_at' | 'updated_at'>): Promise<Place> => {
+	create: (place: PlaceCreateInput): Promise<Place> => {
 		return request<Place>('/places', {
 			method: 'POST',
 			body: JSON.stringify(place)
 		});
 	},
 
-	update: (id: string, place: Partial<Place>): Promise<Place> => {
+	update: (id: string, place: PlaceUpdateInput): Promise<Place> => {
 		return request<Place>(`/places/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify(place)
@@ -56,13 +56,43 @@ export const placesApi = {
 	}
 };
 
-export const toursApi = {
-	getAll: (): Promise<Tour[]> => {
-		return request<Tour[]>('/tours');
+export const routesApi = {
+	getAll: (): Promise<Route[]> => {
+		return request<Route[]>('/routes');
 	},
 
-	getById: (id: string): Promise<Tour> => {
-		return request<Tour>(`/tours/${id}`);
+	getById: (id: string): Promise<Route> => {
+		return request<Route>(`/routes/${id}`);
+	}
+};
+
+export const collectionsApi = {
+	getAll: (): Promise<Collection[]> => {
+		return request<Collection[]>('/collections');
+	},
+
+	getById: (id: string): Promise<Collection> => {
+		return request<Collection>(`/collections/${id}`);
+	},
+
+	create: (collection: Partial<Collection> & { name: string }): Promise<Collection> => {
+		return request<Collection>('/collections', {
+			method: 'POST',
+			body: JSON.stringify(collection)
+		});
+	},
+
+	update: (id: string, collection: Partial<Collection>): Promise<Collection> => {
+		return request<Collection>(`/collections/${id}`, {
+			method: 'PUT',
+			body: JSON.stringify(collection)
+		});
+	},
+
+	delete: (id: string): Promise<void> => {
+		return request<void>(`/collections/${id}`, {
+			method: 'DELETE'
+		});
 	}
 };
 

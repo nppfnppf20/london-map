@@ -10,7 +10,7 @@ export interface Place {
 	category: Category;
 	priority: Priority | null;
 	route: string | null;
-	tour_stop: number | null;
+	route_stop: number | null;
 	tags: string[];
 	created_at: string;
 	updated_at: string;
@@ -24,8 +24,9 @@ export interface CreatePlaceDto {
 	category: Category;
 	priority?: Priority;
 	route?: string;
-	tour_stop?: number;
+	route_stop?: number;
 	tags?: string[];
+	collection_ids?: string[];
 }
 
 export interface UpdatePlaceDto {
@@ -36,11 +37,12 @@ export interface UpdatePlaceDto {
 	category?: Category;
 	priority?: Priority;
 	route?: string | null;
-	tour_stop?: number | null;
+	route_stop?: number | null;
 	tags?: string[];
+	collection_ids?: string[];
 }
 
-export interface Tour {
+export interface Route {
 	id: string;
 	name: string;
 	description: string | null;
@@ -48,12 +50,33 @@ export interface Tour {
 	created_at: string;
 }
 
-export interface TourStop {
+export interface RouteStop {
 	id: string;
-	tour_id: string;
+	route_id: string;
 	place_id: string;
 	stop_order: number;
 	notes: string | null;
+}
+
+export interface Collection {
+	id: string;
+	name: string;
+	description: string | null;
+	color: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateCollectionDto {
+	name: string;
+	description?: string;
+	color?: string;
+}
+
+export interface UpdateCollectionDto {
+	name?: string;
+	description?: string | null;
+	color?: string | null;
 }
 
 export interface ApiResponse<T> {

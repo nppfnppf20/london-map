@@ -75,6 +75,10 @@
 	<AddPointModal
 		open={addModalOpen}
 		coords={pinCoords}
+		onCreateRoute={() => {
+			addModalOpen = false;
+			routeModalOpen = true;
+		}}
 		onClose={() => {
 			addModalOpen = false;
 			pinCoords = null;

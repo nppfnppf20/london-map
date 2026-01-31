@@ -42,7 +42,7 @@ function createRouteBuilderStore() {
 			try {
 				await placesApi.update(placeId, {
 					route: state.routeName,
-					tour_stop: stopNumber
+					route_stop: stopNumber
 				});
 
 				update(s => ({
@@ -67,7 +67,7 @@ function createRouteBuilderStore() {
 			try {
 				await placesApi.update(lastId, {
 					route: null,
-					tour_stop: null
+					route_stop: null
 				});
 
 				update(s => ({
@@ -94,7 +94,7 @@ function createRouteBuilderStore() {
 				try {
 					await placesApi.update(placeId, {
 						route: undefined,
-						tour_stop: undefined
+						route_stop: undefined
 					});
 				} catch {
 					// best effort

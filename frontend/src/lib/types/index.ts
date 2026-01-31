@@ -11,28 +11,45 @@ export interface Place {
 	category: Category;
 	priority: Priority | null;
 	route: string | null;
-	tour_stop: number | null;
+	route_stop: number | null;
 	tags: string[];
 	created_at: string;
 	updated_at: string;
 }
 
-export interface Tour {
+export interface Route {
 	id: string;
 	name: string;
 	description: string | null;
 	duration_minutes: number | null;
-	stops?: TourStop[];
+	stops?: RouteStop[];
 	created_at: string;
 }
 
-export interface TourStop {
+export interface RouteStop {
 	id: string;
-	tour_id: string;
+	route_id: string;
 	place_id: string;
 	stop_order: number;
 	notes: string | null;
 	place?: Place;
+}
+
+export interface Collection {
+	id: string;
+	name: string;
+	description: string | null;
+	color: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface PlaceCreateInput extends Omit<Place, 'id' | 'created_at' | 'updated_at'> {
+	collection_ids?: string[];
+}
+
+export interface PlaceUpdateInput extends Partial<Place> {
+	collection_ids?: string[];
 }
 
 export interface LayerState {

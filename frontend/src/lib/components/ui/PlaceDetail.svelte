@@ -44,10 +44,10 @@
 					{/if}
 				</div>
 				<h2>{place.name}</h2>
-				{#if place.route || place.tour_stop}
+				{#if place.route || place.route_stop}
 					<p class="route-name">
 						{#if place.route}{place.route}{/if}
-						{#if place.tour_stop} · Stop {place.tour_stop}{/if}
+						{#if place.route_stop} · Stop {place.route_stop}{/if}
 					</p>
 				{/if}
 				<button class="close-btn" onclick={onClose} aria-label="Close">

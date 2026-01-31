@@ -56,7 +56,7 @@
 			const isSite = place.priority === 'site';
 
 			let badge = '';
-			if (place.tour_stop != null) {
+			if (place.route_stop != null) {
 				badge = `<div style="
 					position: absolute;
 					top: -8px;
@@ -73,7 +73,7 @@
 					justify-content: center;
 					box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 					line-height: 1;
-				">${place.tour_stop}</div>`;
+				">${place.route_stop}</div>`;
 			}
 
 			if (isSite) {

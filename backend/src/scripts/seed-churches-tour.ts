@@ -174,11 +174,11 @@ async function seed() {
 		placeIds.push(place.id);
 	}
 
-	// Step 2: Create the tour
-	console.log('Creating tour...');
+	// Step 2: Create the route
+	console.log('Creating route...');
 
 	const { data: tour, error: tourError } = await supabase
-		.from('tours')
+		.from('routes')
 		.insert({
 			name: TOUR_NAME,
 			description: TOUR_DESCRIPTION,
@@ -188,20 +188,20 @@ async function seed() {
 		.single();
 
 	if (tourError) {
-		console.error(`✗ Failed to create tour: ${tourError.message}`);
+		console.error(`✗ Failed to create route: ${tourError.message}`);
 		return;
 	}
 
-	console.log(`✓ Created tour: ${tour.id}\n`);
+	console.log(`✓ Created route: ${tour.id}\n`);
 
-	// Step 3: Create tour stops
-	console.log('Creating tour stops...');
+	// Step 3: Create route stops
+	console.log('Creating route stops...');
 
 	for (let i = 0; i < placeIds.length; i++) {
 		const { error: stopError } = await supabase
-			.from('tour_stops')
+			.from('route_stops')
 			.insert({
-				tour_id: tour.id,
+				route_id: tour.id,
 				place_id: placeIds[i],
 				stop_order: i + 1,
 				notes: i === 0 ? 'Starting point' : `Stop ${i}`
@@ -216,8 +216,8 @@ async function seed() {
 
 	console.log('\n✓ Seed complete!');
 	console.log(`  - ${placeIds.length} places created`);
-	console.log(`  - 1 tour created`);
-	console.log(`  - ${placeIds.length} tour stops created`);
+	console.log(`  - 1 route created`);
+	console.log(`  - ${placeIds.length} route stops created`);
 }
 
 seed().catch(console.error);

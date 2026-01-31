@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Place } from '$types';
+import type { Place, PlaceCreateInput } from '$types';
 import { placesApi } from '$services/api';
 
 interface PlacesState {
@@ -32,7 +32,7 @@ function createPlacesStore() {
 			}
 		},
 
-		async create(place: Omit<Place, 'id' | 'created_at' | 'updated_at'>): Promise<Place | null> {
+		async create(place: PlaceCreateInput): Promise<Place | null> {
 			try {
 				const newPlace = await placesApi.create(place);
 				update(state => ({
