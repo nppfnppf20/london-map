@@ -8,9 +8,10 @@
 	interface Props {
 		open: boolean;
 		onClose: () => void;
+		coords?: [number, number] | null;
 	}
 
-	let { open, onClose }: Props = $props();
+	let { open, onClose, coords = null }: Props = $props();
 
 	let name = $state('');
 	let description = $state('');
@@ -20,6 +21,12 @@
 	let tagsInput = $state('');
 	let saving = $state(false);
 	let error = $state('');
+	let location = $state<[number, number] | null>(coords);
+
+	// Keep location in sync with the latest pin selection on open
+	$: if (open) {
+		location = coords ?? $mapStore.center;
+	}
 
 	const categories = Object.entries(CATEGORY_LABELS) as [Category, string][];
 
@@ -31,6 +38,7 @@
 		priority = 'route';
 		tagsInput = '';
 		error = '';
+		location = null;
 	}
 
 	function handleClose() {
@@ -64,7 +72,7 @@
 			.map(t => t.trim())
 			.filter(t => t.length > 0);
 
-		const [lat, lng] = $mapStore.center;
+		const [lat, lng] = location ?? $mapStore.center;
 
 		const result = await placesStore.create({
 			name: name.trim(),
@@ -167,7 +175,7 @@
 				</div>
 
 				<p class="coord-info">
-					Point will be placed at the current map centre.
+					Point will be placed at {location ? `${location[0].toFixed(6)}, ${location[1].toFixed(6)}` : 'the current map centre'}.
 				</p>
 
 				{#if error}

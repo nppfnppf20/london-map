@@ -13,6 +13,9 @@
 	let map: L.Map | null = null;
 	let leaflet: typeof L;
 	let markers: Map<string, L.Marker> = new Map();
+	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
+
+	export let pinMode = false;
 
 	// Determine how a place should render given current layer state
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
@@ -31,6 +34,20 @@
 		}
 
 		return 'hidden';
+	}
+
+	function setPinClickHandling() {
+		if (!map) return;
+		if (pinMode) {
+			if (!pinClickHandler) {
+				pinClickHandler = (e: L.LeafletMouseEvent) => {
+					map!.setView(e.latlng, map!.getZoom(), { animate: true });
+				};
+			}
+			map.on('click', pinClickHandler);
+		} else if (pinClickHandler) {
+			map.off('click', pinClickHandler);
+		}
 	}
 
 	function createIcon(place: Place, mode: 'route' | 'site') {
@@ -140,6 +157,7 @@
 	}
 
 	function handleMarkerClick(place: Place) {
+		if (pinMode) return;
 		if ($routeBuilder.active) {
 			routeBuilder.addStop(place.id);
 		} else {
@@ -251,6 +269,11 @@
 	// React to place data changes
 	$: if (map && leaflet && $placesStore.places) {
 		$placesStore.places.forEach(addMarker);
+	}
+
+	// Enable/disable pin click behavior for placement mode
+	$: if (map) {
+		setPinClickHandling();
 	}
 
 	export function getMap(): L.Map | null {
