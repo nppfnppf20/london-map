@@ -2,9 +2,14 @@
 	import { layerStore } from '$stores/layers';
 	import { routesStore } from '$stores/routes';
 	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
-	import type { Category } from '$types';
+	import type { Category, ViewMode } from '$types';
 
 	let expanded = false;
+	const viewModes: { key: ViewMode; label: string }[] = [
+		{ key: 'collections', label: 'Collections' },
+		{ key: 'sites', label: 'Sites' },
+		{ key: 'routes', label: 'Routes' }
+	];
 
 	const categories: { key: Category; label: string; color: string }[] = [
 		{ key: 'history', label: CATEGORY_LABELS.history, color: CATEGORY_COLORS.history },
@@ -30,38 +35,57 @@
 	{#if expanded}
 		<div class="layer-list">
 			<div class="section">
-				<span class="section-title disabled">Collections</span>
+				<span class="section-title">View by</span>
+				<div class="view-mode">
+					{#each viewModes as mode}
+						<button
+							type="button"
+							class="mode-btn"
+							class:active={$layerStore.viewMode === mode.key}
+							onclick={() => layerStore.setViewMode(mode.key)}
+						>
+							{mode.label}
+						</button>
+					{/each}
+				</div>
 			</div>
 
-			<div class="section">
-				<span class="section-title">Sites</span>
-				{#each categories as cat}
-					<label class="layer-item">
-						<input
-							type="checkbox"
-							checked={$layerStore.sites[cat.key]}
-							onchange={() => layerStore.toggleSite(cat.key)}
-						/>
-						<span class="color-dot" style="background-color: {cat.color}"></span>
-						<span class="label">{cat.label}</span>
-					</label>
-				{/each}
-			</div>
-
-			<div class="section">
-				<span class="section-title">Routes</span>
-				{#each Object.entries($routesStore) as [name, color]}
-					<label class="layer-item">
-						<input
-							type="checkbox"
-							checked={$layerStore.routes[name]}
-							onchange={() => layerStore.toggleRoute(name)}
-						/>
-						<span class="color-dot" style="background-color: {color}"></span>
-						<span class="label">{name}</span>
-					</label>
-				{/each}
-			</div>
+			{#if $layerStore.viewMode === 'collections'}
+				<div class="section">
+					<span class="section-title disabled">Collections</span>
+					<p class="empty-note">Collections coming soon.</p>
+				</div>
+			{:else if $layerStore.viewMode === 'sites'}
+				<div class="section">
+					<span class="section-title">Sites</span>
+					{#each categories as cat}
+						<label class="layer-item">
+							<input
+								type="checkbox"
+								checked={$layerStore.sites[cat.key]}
+								onchange={() => layerStore.toggleSite(cat.key)}
+							/>
+							<span class="color-dot" style="background-color: {cat.color}"></span>
+							<span class="label">{cat.label}</span>
+						</label>
+					{/each}
+				</div>
+			{:else}
+				<div class="section">
+					<span class="section-title">Routes</span>
+					{#each Object.entries($routesStore) as [name, color]}
+						<label class="layer-item">
+							<input
+								type="checkbox"
+								checked={$layerStore.routes[name]}
+								onchange={() => layerStore.toggleRoute(name)}
+							/>
+							<span class="color-dot" style="background-color: {color}"></span>
+							<span class="label">{name}</span>
+						</label>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -133,6 +157,35 @@
 		color: #d1d5db;
 	}
 
+	.view-mode {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--spacing-xs);
+		padding: 0 var(--spacing-xs) var(--spacing-xs);
+	}
+
+	.mode-btn {
+		border: 1px solid #e5e7eb;
+		background: #f9fafb;
+		color: #374151;
+		border-radius: var(--radius-sm);
+		padding: 6px 8px;
+		font-size: 12px;
+		font-weight: 600;
+		transition: background 0.15s ease-out, border-color 0.15s ease-out;
+		cursor: pointer;
+	}
+
+	.mode-btn.active {
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+	}
+
+	.mode-btn:active {
+		transform: scale(0.98);
+	}
+
 	.layer-item {
 		display: flex;
 		align-items: center;
@@ -164,6 +217,13 @@
 	.label {
 		font-size: 14px;
 		font-weight: 500;
+	}
+
+	.empty-note {
+		margin: 0;
+		padding: 0 var(--spacing-sm) var(--spacing-xs);
+		font-size: 12px;
+		color: #9ca3af;
 	}
 
 	input[type="checkbox"] {

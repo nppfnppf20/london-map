@@ -1,5 +1,6 @@
 export type Category = 'history' | 'architecture' | 'food' | 'pub';
 export type Priority = 'site' | 'route';
+export type ViewMode = 'collections' | 'sites' | 'routes';
 
 export interface Place {
 	id: string;
@@ -35,6 +36,7 @@ export interface TourStop {
 }
 
 export interface LayerState {
+	viewMode: ViewMode;
 	sites: Record<Category, boolean>;
 	routes: Record<string, boolean>;
 }

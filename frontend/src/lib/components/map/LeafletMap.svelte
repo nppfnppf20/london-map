@@ -16,14 +16,20 @@
 
 	// Determine how a place should render given current layer state
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
-		// Route layer takes priority if toggled on
-		if (place.route && layers.routes[place.route]) {
-			return 'route';
+		if (layers.viewMode === 'routes') {
+			if (place.route && layers.routes[place.route]) {
+				return 'route';
+			}
+			return 'hidden';
 		}
-		// Otherwise show as a site if its category is on
-		if (layers.sites[place.category]) {
-			return 'site';
+
+		if (layers.viewMode === 'sites') {
+			if (layers.sites[place.category]) {
+				return 'site';
+			}
+			return 'hidden';
 		}
+
 		return 'hidden';
 	}
 

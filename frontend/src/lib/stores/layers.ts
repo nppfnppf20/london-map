@@ -1,20 +1,26 @@
 import { writable, get } from 'svelte/store';
 import { routesStore } from '$stores/routes';
-import type { LayerState, Category } from '$types';
+import type { LayerState, Category, ViewMode } from '$types';
 
-function buildState(): LayerState {
+function buildRouteToggles() {
 	const routes = get(routesStore);
 	const routeToggles: Record<string, boolean> = {};
 	for (const name of Object.keys(routes)) {
 		routeToggles[name] = false;
 	}
+	return routeToggles;
+}
+
+function buildState(): LayerState {
+	const routeToggles = buildRouteToggles();
 
 	return {
+		viewMode: 'sites',
 		sites: {
-			history: true,
-			architecture: true,
-			food: true,
-			pub: true
+			history: false,
+			architecture: false,
+			food: false,
+			pub: false
 		},
 		routes: routeToggles
 	};
@@ -38,6 +44,18 @@ function createLayerStore() {
 
 	return {
 		subscribe,
+		setViewMode: (mode: ViewMode) =>
+			update(state => ({
+				...state,
+				viewMode: mode,
+				sites: {
+					history: false,
+					architecture: false,
+					food: false,
+					pub: false
+				},
+				routes: buildRouteToggles()
+			})),
 		toggleSite: (category: Category) => update(state => ({
 			...state,
 			sites: { ...state.sites, [category]: !state.sites[category] }
