@@ -119,7 +119,7 @@
 	.fab-group {
 		position: absolute;
 		bottom: calc(120px + env(safe-area-inset-bottom, 0px));
-		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+		left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
 		z-index: 1000;
 		display: flex;
 		flex-direction: column;
