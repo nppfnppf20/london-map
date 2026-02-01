@@ -47,6 +47,17 @@ function createPlacesStore() {
 			}
 		},
 
+		upsertMany(incoming: Place[]): void {
+			if (incoming.length === 0) return;
+			update(state => {
+				const existing = new Map(state.places.map(place => [place.id, place]));
+				for (const place of incoming) {
+					existing.set(place.id, { ...existing.get(place.id), ...place });
+				}
+				return { ...state, places: Array.from(existing.values()) };
+			});
+		},
+
 		updateLocal(id: string, updates: Partial<Place>): void {
 			update(state => ({
 				...state,

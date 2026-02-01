@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
 import type { Category, NearbyMode, NearbySearchParams } from '$types';
 import { placesApi } from '$services/api';
+import { placesStore } from '$stores/places';
 
 interface NearbyState {
 	active: boolean;
@@ -48,6 +49,7 @@ function createNearbyStore() {
 
 		try {
 			const places = await placesApi.nearby(params);
+			placesStore.upsertMany(places);
 			update(state => ({
 				...state,
 				placeIds: places.map(place => place.id),
