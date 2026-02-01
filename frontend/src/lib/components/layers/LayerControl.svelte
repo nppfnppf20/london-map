@@ -5,7 +5,7 @@
 	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
 	import type { Category, ViewMode } from '$types';
 
-	let expanded = true;
+	let expanded = false;
 	const viewModes: { key: ViewMode; label: string }[] = [
 		{ key: 'sites', label: 'Sites' },
 		{ key: 'routes', label: 'Routes' },
@@ -29,11 +29,12 @@
 
 <div class="layer-control" class:expanded>
 	<button class="toggle-btn" onclick={toggleExpand} aria-label="Toggle layer controls">
-		<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="M12 2L2 7l10 5 10-5-10-5z"/>
 			<path d="M2 17l10 5 10-5"/>
 			<path d="M2 12l10 5 10-5"/>
 		</svg>
+		<span>Layers</span>
 	</button>
 
 	{#if expanded}
@@ -128,22 +129,25 @@
 	}
 
 	.toggle-btn {
-		width: 44px;
-		height: 44px;
+		padding: 8px 12px;
 		border-radius: var(--radius-md);
 		background: white;
 		color: var(--color-primary);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		gap: 8px;
 		box-shadow: var(--shadow-md);
 		transition: transform 0.15s ease-out;
 		-webkit-tap-highlight-color: transparent;
+		font-size: 13px;
+		font-weight: 700;
 	}
 
 	.toggle-btn:active {
 		transform: scale(0.92);
 	}
+
 
 	.layer-list {
 		background: white;
