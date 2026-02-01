@@ -1,12 +1,27 @@
 import { getSupabaseClient } from './supabase.js';
-import type { Place, CreatePlaceDto, UpdatePlaceDto, Category } from '../types/index.js';
+import type { Place, CreatePlaceDto, UpdatePlaceDto, Category, Collection } from '../types/index.js';
 
 const TABLE_NAME = 'places';
+
+type PlaceRow = Place & {
+	place_collections?: { collections: Collection | null }[];
+};
+
+function withCollections(place: PlaceRow): Place {
+	const collections = place.place_collections
+		?.map(link => link.collections)
+		.filter((collection): collection is Collection => Boolean(collection)) || [];
+
+	const { place_collections, ...rest } = place;
+	return { ...rest, collections };
+}
 
 export async function getAllPlaces(category?: Category): Promise<Place[]> {
 	const supabase = getSupabaseClient();
 
-	let query = supabase.from(TABLE_NAME).select('*');
+	let query = supabase
+		.from(TABLE_NAME)
+		.select('*, place_collections(collection_id, collections(*))');
 
 	if (category) {
 		query = query.eq('category', category);
@@ -18,7 +33,7 @@ export async function getAllPlaces(category?: Category): Promise<Place[]> {
 		throw new Error(`Failed to fetch places: ${error.message}`);
 	}
 
-	return data || [];
+	return (data || []).map(place => withCollections(place as PlaceRow));
 }
 
 export async function getPlaceById(id: string): Promise<Place | null> {
@@ -26,7 +41,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
 
 	const { data, error } = await supabase
 		.from(TABLE_NAME)
-		.select('*')
+		.select('*, place_collections(collection_id, collections(*))')
 		.eq('id', id)
 		.single();
 
@@ -37,7 +52,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
 		throw new Error(`Failed to fetch place: ${error.message}`);
 	}
 
-	return data;
+	return data ? withCollections(data as PlaceRow) : null;
 }
 
 export async function createPlace(dto: CreatePlaceDto): Promise<Place> {

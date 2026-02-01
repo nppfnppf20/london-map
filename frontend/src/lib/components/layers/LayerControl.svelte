@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { layerStore } from '$stores/layers';
 	import { routesStore } from '$stores/routes';
+	import { collectionsStore } from '$stores/collections';
 	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
 	import type { Category, ViewMode } from '$types';
 
@@ -20,6 +21,9 @@
 
 	function toggleExpand() {
 		expanded = !expanded;
+		if (expanded) {
+			collectionsStore.fetchAll();
+		}
 	}
 </script>
 
@@ -52,8 +56,27 @@
 
 			{#if $layerStore.viewMode === 'collections'}
 				<div class="section">
-					<span class="section-title disabled">Collections</span>
-					<p class="empty-note">Collections coming soon.</p>
+					<span class="section-title">Collections</span>
+					{#if $collectionsStore.loading}
+						<p class="empty-note">Loading collections...</p>
+					{:else if $collectionsStore.collections.length === 0}
+						<p class="empty-note">No collections yet.</p>
+					{:else}
+						{#each $collectionsStore.collections as collection}
+							<label class="layer-item">
+								<input
+									type="checkbox"
+									checked={$layerStore.collections[collection.id]}
+									onchange={() => layerStore.toggleCollection(collection.id)}
+								/>
+								<span
+									class="color-dot"
+									style="background-color: {collection.color || '#94a3b8'}"
+								></span>
+								<span class="label">{collection.name}</span>
+							</label>
+						{/each}
+					{/if}
 				</div>
 			{:else if $layerStore.viewMode === 'sites'}
 				<div class="section">

@@ -15,6 +15,7 @@ export interface Place {
 	tags: string[];
 	created_at: string;
 	updated_at: string;
+	collections?: Collection[];
 }
 
 export interface Route {
@@ -56,6 +57,7 @@ export interface LayerState {
 	viewMode: ViewMode;
 	sites: Record<Category, boolean>;
 	routes: Record<string, boolean>;
+	collections: Record<string, boolean>;
 }
 
 export interface MapState {

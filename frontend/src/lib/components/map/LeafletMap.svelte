@@ -26,6 +26,16 @@
 			return 'hidden';
 		}
 
+		if (layers.viewMode === 'collections') {
+			if (!place.collections || place.collections.length === 0) return 'hidden';
+			for (const collection of place.collections) {
+				if (layers.collections[collection.id]) {
+					return 'site';
+				}
+			}
+			return 'hidden';
+		}
+
 		if (layers.viewMode === 'sites') {
 			if (layers.sites[place.category]) {
 				return 'site';

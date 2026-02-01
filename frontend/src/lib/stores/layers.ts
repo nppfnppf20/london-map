@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { routesStore } from '$stores/routes';
+import { collectionsStore } from '$stores/collections';
 import type { LayerState, Category, ViewMode } from '$types';
 
 function buildRouteToggles() {
@@ -11,8 +12,18 @@ function buildRouteToggles() {
 	return routeToggles;
 }
 
+function buildCollectionToggles() {
+	const { collections } = get(collectionsStore);
+	const collectionToggles: Record<string, boolean> = {};
+	for (const collection of collections) {
+		collectionToggles[collection.id] = false;
+	}
+	return collectionToggles;
+}
+
 function buildState(): LayerState {
 	const routeToggles = buildRouteToggles();
+	const collectionToggles = buildCollectionToggles();
 
 	return {
 		viewMode: 'sites',
@@ -22,7 +33,8 @@ function buildState(): LayerState {
 			food: false,
 			pub: false
 		},
-		routes: routeToggles
+		routes: routeToggles,
+		collections: collectionToggles
 	};
 }
 
@@ -42,6 +54,18 @@ function createLayerStore() {
 		});
 	});
 
+	collectionsStore.subscribe(collectionsState => {
+		update(state => {
+			const next = { ...state, collections: { ...state.collections } };
+			for (const collection of collectionsState.collections) {
+				if (next.collections[collection.id] === undefined) {
+					next.collections[collection.id] = false;
+				}
+			}
+			return next;
+		});
+	});
+
 	return {
 		subscribe,
 		setViewMode: (mode: ViewMode) =>
@@ -54,7 +78,8 @@ function createLayerStore() {
 					food: false,
 					pub: false
 				},
-				routes: buildRouteToggles()
+				routes: buildRouteToggles(),
+				collections: buildCollectionToggles()
 			})),
 		toggleSite: (category: Category) => update(state => ({
 			...state,
@@ -63,6 +88,10 @@ function createLayerStore() {
 		toggleRoute: (route: string) => update(state => ({
 			...state,
 			routes: { ...state.routes, [route]: !state.routes[route] }
+		})),
+		toggleCollection: (collectionId: string) => update(state => ({
+			...state,
+			collections: { ...state.collections, [collectionId]: !state.collections[collectionId] }
 		}))
 	};
 }

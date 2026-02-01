@@ -14,6 +14,7 @@ export interface Place {
 	tags: string[];
 	created_at: string;
 	updated_at: string;
+	collections?: Collection[];
 }
 
 export interface CreatePlaceDto {
