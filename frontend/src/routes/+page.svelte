@@ -107,11 +107,13 @@
 	.map-page {
 		position: relative;
 		width: 100%;
-		height: 100%;
+		height: 100dvh;
+		min-height: 100dvh;
+		--bottom-bar-height: 64px;
 	}
 
 	.bottom-bar {
-		position: absolute;
+		position: fixed;
 		left: 0;
 		right: 0;
 		bottom: 0;
@@ -168,7 +170,7 @@
 
 	.pin-panel {
 		position: absolute;
-		bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 12px);
+		bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px) + 12px);
 		left: 50%;
 		transform: translateX(-50%);
 		background: white;
