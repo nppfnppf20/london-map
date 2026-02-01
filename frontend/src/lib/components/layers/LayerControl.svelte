@@ -5,11 +5,11 @@
 	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
 	import type { Category, ViewMode } from '$types';
 
-	let expanded = false;
+	let expanded = true;
 	const viewModes: { key: ViewMode; label: string }[] = [
-		{ key: 'collections', label: 'Collections' },
 		{ key: 'sites', label: 'Sites' },
-		{ key: 'routes', label: 'Routes' }
+		{ key: 'routes', label: 'Routes' },
+		{ key: 'collections', label: 'Collections' }
 	];
 
 	const categories: { key: Category; label: string; color: string }[] = [

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { routesStore } from '$stores/routes';
+	import { layerStore } from '$stores/layers';
 	import { COLOR_SWATCHES } from '$utils/map-helpers';
 
 	interface Props {
@@ -49,6 +50,9 @@
 
 		// Enter plotting mode
 		routeBuilder.start(trimmed, selectedColor);
+
+		// Ensure sites are visible while building a route
+		layerStore.showAllSites();
 
 		handleClose();
 	}

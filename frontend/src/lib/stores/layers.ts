@@ -81,6 +81,19 @@ function createLayerStore() {
 				routes: buildRouteToggles(),
 				collections: buildCollectionToggles()
 			})),
+		showAllSites: () =>
+			update(state => ({
+				...state,
+				viewMode: 'sites',
+				sites: {
+					history: true,
+					architecture: true,
+					food: true,
+					pub: true
+				},
+				routes: buildRouteToggles(),
+				collections: buildCollectionToggles()
+			})),
 		toggleSite: (category: Category) => update(state => ({
 			...state,
 			sites: { ...state.sites, [category]: !state.sites[category] }
