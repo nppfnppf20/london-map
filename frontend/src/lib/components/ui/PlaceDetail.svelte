@@ -6,9 +6,10 @@ interface Props {
 	place: Place | null;
 	onClose: () => void;
 	onAddTo: () => void;
+	onRecordAudio: () => void;
 }
 
-let { place, onClose, onAddTo }: Props = $props();
+let { place, onClose, onAddTo, onRecordAudio }: Props = $props();
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) {
@@ -51,7 +52,10 @@ let { place, onClose, onAddTo }: Props = $props();
 						{#if place.route_stop} · Stop {place.route_stop}{/if}
 					</p>
 				{/if}
-				<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
+				<div class="action-row">
+					<button class="add-to-btn" onclick={onAddTo}>Add to...</button>
+					<button class="audio-btn" onclick={onRecordAudio}>Record audio</button>
+				</div>
 				<button class="close-btn" onclick={onClose} aria-label="Close">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -159,16 +163,30 @@ let { place, onClose, onAddTo }: Props = $props();
 		color: #6b7280;
 	}
 
-	.add-to-btn {
+	.action-row {
 		margin-top: var(--spacing-md);
+		display: flex;
+		gap: var(--spacing-sm);
+		flex-wrap: wrap;
+	}
+
+	.add-to-btn,
+	.audio-btn {
 		padding: 8px 12px;
 		border-radius: var(--radius-md);
-		background: #111827;
-		color: white;
 		font-size: 13px;
 		font-weight: 600;
-		width: fit-content;
 		-webkit-tap-highlight-color: transparent;
+	}
+
+	.add-to-btn {
+		background: #111827;
+		color: white;
+	}
+
+	.audio-btn {
+		background: #f3f4f6;
+		color: #374151;
 	}
 
 	.close-btn {

@@ -7,6 +7,7 @@
 	import CreateRouteModal from '$components/ui/CreateRouteModal.svelte';
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
 	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
+	import RecordAudioModal from '$components/ui/RecordAudioModal.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -14,6 +15,7 @@
 	let addModalOpen = $state(false);
 	let routeModalOpen = $state(false);
 	let addSiteToOpen = $state(false);
+	let recordAudioOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
 
@@ -73,6 +75,16 @@
 		onClose={() => selectedPlace.clear()}
 		onAddTo={() => {
 			addSiteToOpen = true;
+		}}
+		onRecordAudio={() => {
+			recordAudioOpen = true;
+		}}
+	/>
+	<RecordAudioModal
+		open={recordAudioOpen}
+		place={$selectedPlace}
+		onClose={() => {
+			recordAudioOpen = false;
 		}}
 	/>
 	<RoutePlaceDetail

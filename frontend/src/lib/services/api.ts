@@ -69,6 +69,31 @@ export const placesApi = {
 			method: 'POST',
 			body: JSON.stringify({ collection_ids })
 		});
+	},
+
+	uploadAudio: async (id: string, audio: Blob, durationSeconds?: number): Promise<Place> => {
+		const form = new FormData();
+		form.append('audio', audio);
+		if (durationSeconds !== undefined) {
+			form.append('duration_seconds', String(durationSeconds));
+		}
+
+		const response = await fetch(`${API_URL}/places/${id}/audio`, {
+			method: 'POST',
+			body: form
+		});
+
+		if (!response.ok) {
+			const text = await response.text();
+			throw new Error(text || 'Failed to upload audio');
+		}
+
+		const result: ApiResponse<Place> = await response.json();
+		if (result.error) {
+			throw new Error(result.error);
+		}
+
+		return result.data as Place;
 	}
 };
 
