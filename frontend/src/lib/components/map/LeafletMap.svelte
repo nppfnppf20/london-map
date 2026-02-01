@@ -303,7 +303,7 @@
 	:global(.leaflet-control-zoom) {
 		border: none !important;
 		box-shadow: var(--shadow-md) !important;
-		margin-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px) + 12px) !important;
+		margin-bottom: calc(68px + env(safe-area-inset-bottom, 0px) + var(--spacing-md)) !important;
 		margin-right: var(--spacing-md) !important;
 	}
 

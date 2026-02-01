@@ -44,18 +44,12 @@
 	<RouteBanner />
 
 	{#if !$routeBuilder.active}
-		<div class="fab-group">
-			<button class="fab fab-route" onclick={() => routeModalOpen = true} aria-label="Create route">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M3 17l4-4 4 4 4-4 4 4"/>
-					<circle cx="5" cy="7" r="2"/>
-					<circle cx="19" cy="7" r="2"/>
-				</svg>
+		<div class="bottom-bar">
+			<button class="bar-btn primary" onclick={startPinMode} aria-label="Add point">
+				Add site
 			</button>
-			<button class="fab fab-add" onclick={startPinMode} aria-label="Add point">
-				<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-					<path d="M12 5v14M5 12h14"/>
-				</svg>
+			<button class="bar-btn secondary" onclick={() => routeModalOpen = true} aria-label="Create route">
+				Create route
 			</button>
 		</div>
 	{/if}
@@ -116,43 +110,37 @@
 		height: 100%;
 	}
 
-	.fab-group {
+	.bottom-bar {
 		position: absolute;
-		bottom: calc(120px + env(safe-area-inset-bottom, 0px));
-		left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
-		z-index: 1000;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 1100;
 		display: flex;
-		flex-direction: column;
 		gap: var(--spacing-sm);
-		align-items: center;
+		padding: var(--spacing-sm) var(--spacing-md) calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+		background: white;
+		border-top: 1px solid #e5e7eb;
+		box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.08);
 	}
 
-	.fab {
-		width: 52px;
-		height: 52px;
-		border-radius: 50%;
-		color: white;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: transform 0.15s ease-out;
+	.bar-btn {
+		flex: 1;
+		padding: 12px 14px;
+		border-radius: var(--radius-md);
+		font-size: 15px;
+		font-weight: 700;
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.fab:active {
-		transform: scale(0.92);
-	}
-
-	.fab-add {
+	.bar-btn.primary {
 		background: var(--color-highlight);
-		box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
+		color: white;
 	}
 
-	.fab-route {
-		width: 44px;
-		height: 44px;
-		background: var(--color-accent);
-		box-shadow: 0 4px 12px rgba(15, 52, 96, 0.3);
+	.bar-btn.secondary {
+		background: #f3f4f6;
+		color: #374151;
 	}
 
 	.pin-overlay {
@@ -180,7 +168,7 @@
 
 	.pin-panel {
 		position: absolute;
-		bottom: max(12px, calc(12px + env(safe-area-inset-bottom, 0px)));
+		bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 12px);
 		left: 50%;
 		transform: translateX(-50%);
 		background: white;
