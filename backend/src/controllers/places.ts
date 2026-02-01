@@ -1,6 +1,23 @@
 import { Request, Response } from 'express';
 import * as placesService from '../services/places.js';
-import type { Category, CreatePlaceDto, UpdatePlaceDto } from '../types/index.js';
+import type {
+	Category,
+	CreatePlaceDto,
+	UpdatePlaceDto,
+	NearbyMode,
+	NearbyPlacesQuery
+} from '../types/index.js';
+
+function parseList(value: unknown): string[] {
+	if (!value) return [];
+	if (Array.isArray(value)) {
+		return value.flatMap(entry => String(entry).split(',')).map(item => item.trim()).filter(Boolean);
+	}
+	return String(value)
+		.split(',')
+		.map(item => item.trim())
+		.filter(Boolean);
+}
 
 export async function getAll(req: Request, res: Response): Promise<void> {
 	try {
@@ -88,6 +105,55 @@ export async function remove(req: Request, res: Response): Promise<void> {
 		const { id } = req.params;
 		await placesService.deletePlace(id);
 		res.status(204).send();
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Unknown error';
+		res.status(500).json({ data: null, error: message });
+	}
+}
+
+export async function getNearby(req: Request, res: Response): Promise<void> {
+	try {
+		const lat = Number(req.query.lat);
+		const lng = Number(req.query.lng);
+		const radiusMeters = Number(req.query.radius_meters ?? req.query.radius);
+		const mode = req.query.mode as NearbyMode | undefined;
+
+		if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+			res.status(400).json({ data: null, error: 'Missing or invalid lat/lng' });
+			return;
+		}
+
+		if (!Number.isFinite(radiusMeters) || radiusMeters <= 0) {
+			res.status(400).json({ data: null, error: 'Missing or invalid radius_meters' });
+			return;
+		}
+
+		if (!mode || !['sites', 'routes', 'collections'].includes(mode)) {
+			res.status(400).json({ data: null, error: 'Missing or invalid mode' });
+			return;
+		}
+
+		const categories = parseList(req.query.categories) as Category[];
+		const routes = parseList(req.query.routes);
+		const collectionIds = parseList(req.query.collection_ids ?? req.query.collections);
+
+		if (mode === 'collections' && collectionIds.length === 0) {
+			res.status(400).json({ data: null, error: 'Missing collection_ids' });
+			return;
+		}
+
+		const query: NearbyPlacesQuery = {
+			latitude: lat,
+			longitude: lng,
+			radiusMeters,
+			mode,
+			categories: categories.length > 0 ? categories : undefined,
+			routes: routes.length > 0 ? routes : undefined,
+			collectionIds: collectionIds.length > 0 ? collectionIds : undefined
+		};
+
+		const places = await placesService.getNearbyPlaces(query);
+		res.json({ data: places, error: null });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
 		res.status(500).json({ data: null, error: message });

@@ -1,6 +1,7 @@
 export type Category = 'history' | 'architecture' | 'food' | 'pub';
 export type Priority = 'site' | 'route';
 export type ViewMode = 'collections' | 'sites' | 'routes';
+export type NearbyMode = 'sites' | 'routes' | 'collections';
 
 export interface Place {
 	id: string;
@@ -63,4 +64,13 @@ export interface LayerState {
 export interface MapState {
 	center: [number, number];
 	zoom: number;
+}
+
+export interface NearbySearchParams {
+	center: [number, number];
+	radiusMeters: number;
+	mode: NearbyMode;
+	categories?: Category[];
+	routes?: string[];
+	collectionIds?: string[];
 }

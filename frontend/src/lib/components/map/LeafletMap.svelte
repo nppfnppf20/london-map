@@ -3,6 +3,7 @@
 	import { mapStore } from '$stores/map';
 	import { layerStore } from '$stores/layers';
 	import { placesStore } from '$stores/places';
+	import { nearbyStore } from '$stores/nearby';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
@@ -13,6 +14,8 @@
 	let map: L.Map | null = null;
 	let leaflet: typeof L;
 	let markers: Map<string, L.Marker> = new Map();
+	let nearbyCircle: L.Circle | null = null;
+	let nearbyIdSet = new Set<string>();
 	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
 
 	export let pinMode = false;
@@ -21,6 +24,13 @@
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
 		if ($routeBuilder.active && place.route === $routeBuilder.routeName && place.route_stop != null) {
 			return 'route';
+		}
+
+		if ($nearbyStore.active) {
+			if (!nearbyIdSet.has(place.id)) {
+				return 'hidden';
+			}
+			return $nearbyStore.mode === 'routes' ? 'route' : 'site';
 		}
 
 		if (layers.viewMode === 'routes') {
@@ -272,7 +282,7 @@
 	});
 
 	// React to layer changes — update visibility AND icons
-	$: if (map && $layerStore) {
+	$: if (map && $layerStore && $nearbyStore) {
 		updateMarkers();
 	}
 
@@ -281,9 +291,40 @@
 		$placesStore.places.forEach(addMarker);
 	}
 
+	$: if ($nearbyStore.active) {
+		nearbyIdSet = new Set($nearbyStore.placeIds);
+	} else {
+		nearbyIdSet = new Set();
+	}
+
 	// Enable/disable pin click behavior for placement mode
 	$: if (map) {
 		setPinClickHandling();
+	}
+
+	// Render nearby radius overlay
+	$: if (map && leaflet) {
+		if ($nearbyStore.active && $nearbyStore.center) {
+			if (!nearbyCircle) {
+				nearbyCircle = leaflet.circle($nearbyStore.center, {
+					radius: $nearbyStore.radiusMeters,
+					color: '#e94560',
+					weight: 2,
+					fillColor: '#e94560',
+					fillOpacity: 0.1
+				});
+				nearbyCircle.addTo(map);
+			} else {
+				nearbyCircle.setLatLng($nearbyStore.center);
+				nearbyCircle.setRadius($nearbyStore.radiusMeters);
+				if (!map.hasLayer(nearbyCircle)) {
+					nearbyCircle.addTo(map);
+				}
+			}
+		} else if (nearbyCircle) {
+			nearbyCircle.remove();
+			nearbyCircle = null;
+		}
 	}
 
 	export function getMap(): L.Map | null {

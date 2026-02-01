@@ -4,6 +4,8 @@
 	import PlaceDetail from '$components/ui/PlaceDetail.svelte';
 	import AddPointModal from '$components/ui/AddPointModal.svelte';
 	import AddSiteToModal from '$components/ui/AddSiteToModal.svelte';
+	import NearbySearchModal from '$components/ui/NearbySearchModal.svelte';
+	import NearbyControl from '$components/ui/NearbyControl.svelte';
 	import CreateRouteModal from '$components/ui/CreateRouteModal.svelte';
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
 	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
@@ -14,23 +16,33 @@
 	let addModalOpen = $state(false);
 	let routeModalOpen = $state(false);
 	let addSiteToOpen = $state(false);
+	let nearbyModalOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
+	let pinAction = $state<'add' | 'nearby' | null>(null);
 
-	function startPinMode() {
+	function startPinMode(action: 'add' | 'nearby') {
 		selectedPlace.clear();
 		pinMode = true;
+		pinAction = action;
 	}
 
 	function cancelPinMode() {
 		pinMode = false;
 		pinCoords = null;
+		pinAction = null;
 	}
 
 	function confirmPinMode() {
 		pinCoords = $mapStore.center;
 		pinMode = false;
-		addModalOpen = true;
+		if (pinAction === 'add') {
+			addModalOpen = true;
+		}
+		if (pinAction === 'nearby') {
+			nearbyModalOpen = true;
+		}
+		pinAction = null;
 	}
 </script>
 
@@ -45,11 +57,14 @@
 
 	{#if !$routeBuilder.active}
 		<div class="bottom-bar">
-			<button class="bar-btn primary" onclick={startPinMode} aria-label="Add point">
+			<button class="bar-btn primary" onclick={() => startPinMode('add')} aria-label="Add point">
 				Add site
 			</button>
 			<button class="bar-btn secondary" onclick={() => routeModalOpen = true} aria-label="Create route">
 				Create route
+			</button>
+			<button class="bar-btn secondary" onclick={() => startPinMode('nearby')} aria-label="Find near me">
+				Find near me
 			</button>
 		</div>
 	{/if}
@@ -100,6 +115,15 @@
 			pinCoords = null;
 		}}
 	/>
+	<NearbySearchModal
+		open={nearbyModalOpen}
+		center={pinCoords}
+		onClose={() => {
+			nearbyModalOpen = false;
+			pinCoords = null;
+		}}
+	/>
+	<NearbyControl onEdit={() => { nearbyModalOpen = true; }} />
 	<CreateRouteModal open={routeModalOpen} onClose={() => routeModalOpen = false} />
 </main>
 

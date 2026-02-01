@@ -1,5 +1,12 @@
 import { getSupabaseClient } from './supabase.js';
-import type { Place, CreatePlaceDto, UpdatePlaceDto, Category, Collection } from '../types/index.js';
+import type {
+	Place,
+	CreatePlaceDto,
+	UpdatePlaceDto,
+	Category,
+	Collection,
+	NearbyPlacesQuery
+} from '../types/index.js';
 
 const TABLE_NAME = 'places';
 
@@ -185,4 +192,32 @@ export async function addCollectionsToPlace(placeId: string, collectionIds: stri
 	if (error) {
 		throw new Error(`Failed to link collections: ${error.message}`);
 	}
+}
+
+type NearbyPlaceRow = Place & {
+	collections?: Collection[] | null;
+};
+
+export async function getNearbyPlaces(query: NearbyPlacesQuery): Promise<Place[]> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.rpc('nearby_places', {
+			lat: query.latitude,
+			lng: query.longitude,
+			radius_meters: query.radiusMeters,
+			mode: query.mode,
+			categories: query.categories && query.categories.length > 0 ? query.categories : null,
+			routes: query.routes && query.routes.length > 0 ? query.routes : null,
+			collection_ids: query.collectionIds && query.collectionIds.length > 0 ? query.collectionIds : null
+		});
+
+	if (error) {
+		throw new Error(`Failed to fetch nearby places: ${error.message}`);
+	}
+
+	return (data || []).map(place => {
+		const row = place as NearbyPlaceRow;
+		return { ...row, collections: row.collections ?? [] };
+	});
 }

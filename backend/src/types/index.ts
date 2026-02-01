@@ -1,5 +1,6 @@
 export type Category = 'history' | 'architecture' | 'food' | 'pub';
 export type Priority = 'site' | 'route';
+export type NearbyMode = 'sites' | 'routes' | 'collections';
 
 export interface Place {
 	id: string;
@@ -41,6 +42,16 @@ export interface UpdatePlaceDto {
 	route_stop?: number | null;
 	tags?: string[];
 	collection_ids?: string[];
+}
+
+export interface NearbyPlacesQuery {
+	latitude: number;
+	longitude: number;
+	radiusMeters: number;
+	mode: NearbyMode;
+	categories?: Category[];
+	routes?: string[];
+	collectionIds?: string[];
 }
 
 export interface Route {
