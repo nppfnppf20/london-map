@@ -19,6 +19,10 @@
 
 	// Determine how a place should render given current layer state
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
+		if ($routeBuilder.active && place.route === $routeBuilder.routeName && place.route_stop != null) {
+			return 'route';
+		}
+
 		if (layers.viewMode === 'routes') {
 			if (place.route && layers.routes[place.route]) {
 				return 'route';
@@ -168,11 +172,7 @@
 
 	function handleMarkerClick(place: Place) {
 		if (pinMode) return;
-		if ($routeBuilder.active) {
-			routeBuilder.addStop(place.id);
-		} else {
-			selectedPlace.select(place);
-		}
+		selectedPlace.select(place);
 	}
 
 	function addMarker(place: Place) {

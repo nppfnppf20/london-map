@@ -27,7 +27,7 @@
 			<span class="route-name">{$routeBuilder.routeName}</span>
 			<span class="status">
 				{#if $routeBuilder.stops.length === 0}
-					Tap a marker to add Stop 1
+					Tap a marker to preview, then add Stop 1
 				{:else}
 					{$routeBuilder.stops.length} stop{$routeBuilder.stops.length === 1 ? '' : 's'} added — tap next
 				{/if}

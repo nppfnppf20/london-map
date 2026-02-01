@@ -33,6 +33,8 @@ function createRouteBuilderStore() {
 
 		async addStop(placeId: string): Promise<boolean> {
 			const state = get({ subscribe });
+			const placesState = get(placesStore);
+			const existingPlace = placesState.places.find(place => place.id === placeId);
 
 			// Don't add duplicates
 			if (state.stops.includes(placeId)) return false;
@@ -40,7 +42,7 @@ function createRouteBuilderStore() {
 			const stopNumber = state.stops.length + 1;
 
 			try {
-				await placesApi.update(placeId, {
+				placesStore.updateLocal(placeId, {
 					route: state.routeName,
 					route_stop: stopNumber
 				});
@@ -50,10 +52,27 @@ function createRouteBuilderStore() {
 					stops: [...s.stops, placeId]
 				}));
 
+				await placesApi.update(placeId, {
+					route: state.routeName,
+					route_stop: stopNumber
+				});
+
 				// Refresh places so the map picks up the change
 				await placesStore.fetchAll();
 				return true;
 			} catch {
+				if (existingPlace) {
+					placesStore.updateLocal(placeId, {
+						route: existingPlace.route,
+						route_stop: existingPlace.route_stop
+					});
+				}
+
+				update(s => ({
+					...s,
+					stops: s.stops.filter(id => id !== placeId)
+				}));
+
 				return false;
 			}
 		},
@@ -66,6 +85,11 @@ function createRouteBuilderStore() {
 
 			try {
 				await placesApi.update(lastId, {
+					route: null,
+					route_stop: null
+				});
+
+				placesStore.updateLocal(lastId, {
 					route: null,
 					route_stop: null
 				});

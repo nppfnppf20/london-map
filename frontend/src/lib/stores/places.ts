@@ -47,6 +47,15 @@ function createPlacesStore() {
 			}
 		},
 
+		updateLocal(id: string, updates: Partial<Place>): void {
+			update(state => ({
+				...state,
+				places: state.places.map(place =>
+					place.id === id ? { ...place, ...updates } : place
+				)
+			}));
+		},
+
 		async remove(id: string): Promise<boolean> {
 			try {
 				await placesApi.delete(id);

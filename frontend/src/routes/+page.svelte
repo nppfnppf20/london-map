@@ -6,6 +6,7 @@
 	import AddSiteToModal from '$components/ui/AddSiteToModal.svelte';
 	import CreateRouteModal from '$components/ui/CreateRouteModal.svelte';
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
+	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -74,10 +75,18 @@
 	{/if}
 
 	<PlaceDetail
-		place={$selectedPlace}
+		place={$routeBuilder.active ? null : $selectedPlace}
 		onClose={() => selectedPlace.clear()}
 		onAddTo={() => {
 			addSiteToOpen = true;
+		}}
+	/>
+	<RoutePlaceDetail
+		place={$routeBuilder.active ? $selectedPlace : null}
+		onClose={() => selectedPlace.clear()}
+		onAddToRoute={(place) => {
+			routeBuilder.addStop(place.id);
+			selectedPlace.clear();
 		}}
 	/>
 	<AddSiteToModal
