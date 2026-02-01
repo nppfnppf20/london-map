@@ -5,6 +5,7 @@ const router = Router();
 
 router.get('/', placesController.getAll);
 router.get('/nearby', placesController.getNearby);
+router.post('/along-route', placesController.getAlongRoute);
 router.get('/:id', placesController.getById);
 router.post('/', placesController.create);
 router.put('/:id', placesController.update);

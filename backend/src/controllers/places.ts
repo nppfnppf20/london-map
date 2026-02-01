@@ -5,7 +5,9 @@ import type {
 	CreatePlaceDto,
 	UpdatePlaceDto,
 	NearbyMode,
-	NearbyPlacesQuery
+	NearbyPlacesQuery,
+	AlongRoutePlacesQuery,
+	RouteSearchMode
 } from '../types/index.js';
 
 function parseList(value: unknown): string[] {
@@ -153,6 +155,56 @@ export async function getNearby(req: Request, res: Response): Promise<void> {
 		};
 
 		const places = await placesService.getNearbyPlaces(query);
+		res.json({ data: places, error: null });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Unknown error';
+		res.status(500).json({ data: null, error: message });
+	}
+}
+
+export async function getAlongRoute(req: Request, res: Response): Promise<void> {
+	try {
+		const { line, width_meters, mode, categories, routes, collection_ids } = req.body as {
+			line?: [number, number][];
+			width_meters?: number;
+			mode?: RouteSearchMode;
+			categories?: Category[];
+			routes?: string[];
+			collection_ids?: string[];
+		};
+
+		const widthMeters = Number(width_meters);
+
+		if (!Array.isArray(line) || line.length < 2) {
+			res.status(400).json({ data: null, error: 'Missing or invalid line' });
+			return;
+		}
+
+		if (!Number.isFinite(widthMeters) || widthMeters <= 0) {
+			res.status(400).json({ data: null, error: 'Missing or invalid width_meters' });
+			return;
+		}
+
+		if (!mode || !['sites', 'routes', 'collections'].includes(mode)) {
+			res.status(400).json({ data: null, error: 'Missing or invalid mode' });
+			return;
+		}
+
+		if (mode === 'collections' && (!collection_ids || collection_ids.length === 0)) {
+			res.status(400).json({ data: null, error: 'Missing collection_ids' });
+			return;
+		}
+
+		const query: AlongRoutePlacesQuery = {
+			line,
+			widthMeters,
+			mode,
+			categories: categories && categories.length > 0 ? categories : undefined,
+			routes: routes && routes.length > 0 ? routes : undefined,
+			collectionIds: collection_ids && collection_ids.length > 0 ? collection_ids : undefined
+		};
+
+		const places = await placesService.getAlongRoutePlaces(query);
 		res.json({ data: places, error: null });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';

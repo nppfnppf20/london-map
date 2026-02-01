@@ -1,22 +1,20 @@
 <script lang="ts">
-	import { mapStore } from '$stores/map';
-	import { nearbyStore } from '$stores/nearby';
 	import { routeSearchStore } from '$stores/routeSearch';
+	import { nearbyStore } from '$stores/nearby';
 	import { routesStore } from '$stores/routes';
 	import { collectionsStore } from '$stores/collections';
 	import { CATEGORY_LABELS } from '$utils/map-helpers';
-	import type { Category, NearbyMode } from '$types';
+	import type { Category, RouteSearchMode } from '$types';
 
 	interface Props {
 		open: boolean;
-		center?: [number, number] | null;
 		onClose: () => void;
 	}
 
-	let { open, center = null, onClose }: Props = $props();
+	let { open, onClose }: Props = $props();
 
-	let mode = $state<NearbyMode>('sites');
-	let radiusMeters = $state(1000);
+	let mode = $state<RouteSearchMode>('sites');
+	let widthMeters = $state(200);
 	let useAllCategories = $state(true);
 	let useAllRoutes = $state(true);
 	let selectedCategories = $state<Category[]>([]);
@@ -25,29 +23,27 @@
 	let step = $state<1 | 2 | 3>(1);
 	let searching = $state(false);
 	let error = $state('');
-	let location = $state<[number, number] | null>(center);
 
 	const categories = Object.entries(CATEGORY_LABELS) as [Category, string][];
 
 	$effect(() => {
 		if (open) {
 			collectionsStore.fetchAll();
-			location = center ?? $mapStore.center;
 			error = '';
 			searching = false;
 
-			if ($nearbyStore.active) {
-				mode = $nearbyStore.mode;
-				radiusMeters = $nearbyStore.radiusMeters;
-				useAllCategories = $nearbyStore.categories.length === 0;
-				useAllRoutes = $nearbyStore.routes.length === 0;
-				selectedCategories = [...$nearbyStore.categories];
-				selectedRoutes = [...$nearbyStore.routes];
-				selectedCollections = [...$nearbyStore.collectionIds];
+			if ($routeSearchStore.active) {
+				mode = $routeSearchStore.mode;
+				widthMeters = $routeSearchStore.widthMeters;
+				useAllCategories = $routeSearchStore.categories.length === 0;
+				useAllRoutes = $routeSearchStore.routes.length === 0;
+				selectedCategories = [...$routeSearchStore.categories];
+				selectedRoutes = [...$routeSearchStore.routes];
+				selectedCollections = [...$routeSearchStore.collectionIds];
 				step = 3;
 			} else {
 				mode = 'sites';
-				radiusMeters = 1000;
+				widthMeters = 200;
 				useAllCategories = true;
 				useAllRoutes = true;
 				selectedCategories = [];
@@ -94,7 +90,7 @@
 		}
 	}
 
-	function formatRadius(value: number) {
+	function formatWidth(value: number) {
 		return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
 	}
 
@@ -131,6 +127,11 @@
 	async function handleSearch() {
 		error = '';
 
+		if ($routeSearchStore.line.length < 2) {
+			error = 'Draw a route first.';
+			return;
+		}
+
 		if (!canAdvanceStep2()) {
 			error = 'Select at least one option.';
 			step = 2;
@@ -138,11 +139,11 @@
 		}
 
 		searching = true;
-		routeSearchStore.clear();
+		nearbyStore.clear();
 
-		const searchOk = await nearbyStore.search({
-			center: location ?? $mapStore.center,
-			radiusMeters,
+		const searchOk = await routeSearchStore.search({
+			line: $routeSearchStore.line,
+			widthMeters,
 			mode,
 			categories: mode === 'sites' && !useAllCategories ? selectedCategories : undefined,
 			routes: mode === 'routes' && !useAllRoutes ? selectedRoutes : undefined,
@@ -154,7 +155,7 @@
 		if (searchOk) {
 			onClose();
 		} else {
-			error = $nearbyStore.error ?? 'Failed to search nearby places.';
+			error = $routeSearchStore.error ?? 'Failed to search along route.';
 		}
 	}
 </script>
@@ -167,7 +168,7 @@
 	<div class="backdrop" onclick={handleBackdropClick}>
 		<div class="modal">
 			<div class="header">
-				<h2>Find near me</h2>
+				<h2>Find along route</h2>
 				<button class="close-btn" onclick={onClose} aria-label="Close">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -289,22 +290,22 @@
 					{/if}
 				{:else}
 					<div class="section">
-						<span class="section-title">Step 3 - Radius</span>
+						<span class="section-title">Step 3 - Width</span>
 						<div class="radius">
 							<input
 								type="range"
-								min="250"
-								max="3000"
-								step="250"
-								value={radiusMeters}
+								min="50"
+								max="1000"
+								step="25"
+								value={widthMeters}
 								oninput={(event) => {
-									radiusMeters = Number((event.currentTarget as HTMLInputElement).value);
+									widthMeters = Number((event.currentTarget as HTMLInputElement).value);
 								}}
 							/>
-							<span class="radius-value">{formatRadius(radiusMeters)}</span>
+							<span class="radius-value">{formatWidth(widthMeters)}</span>
 						</div>
 						<p class="coord-info">
-							Searching around {location ? `${location[0].toFixed(5)}, ${location[1].toFixed(5)}` : 'the map center'}.
+							Searching along your drawn route.
 						</p>
 					</div>
 				{/if}
@@ -355,6 +356,7 @@
 		color: var(--color-primary);
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 		overflow: hidden;
+		cursor: default;
 	}
 
 	.header {

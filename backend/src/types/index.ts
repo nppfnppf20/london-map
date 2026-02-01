@@ -1,6 +1,7 @@
 export type Category = 'history' | 'architecture' | 'food' | 'pub';
 export type Priority = 'site' | 'route';
 export type NearbyMode = 'sites' | 'routes' | 'collections';
+export type RouteSearchMode = NearbyMode;
 
 export interface Place {
 	id: string;
@@ -49,6 +50,15 @@ export interface NearbyPlacesQuery {
 	longitude: number;
 	radiusMeters: number;
 	mode: NearbyMode;
+	categories?: Category[];
+	routes?: string[];
+	collectionIds?: string[];
+}
+
+export interface AlongRoutePlacesQuery {
+	line: [number, number][];
+	widthMeters: number;
+	mode: RouteSearchMode;
 	categories?: Category[];
 	routes?: string[];
 	collectionIds?: string[];

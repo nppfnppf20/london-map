@@ -1,64 +1,63 @@
 <script lang="ts">
-	import { nearbyStore } from '$stores/nearby';
 	import { routeSearchStore } from '$stores/routeSearch';
+	import { nearbyStore } from '$stores/nearby';
 
 	interface Props {
 		onEdit?: () => void;
+		onRedraw?: () => void;
 	}
 
-	let { onEdit }: Props = $props();
-	let radiusMeters = $state(1000);
+	let { onEdit, onRedraw }: Props = $props();
 
-	$effect(() => {
-		radiusMeters = $nearbyStore.radiusMeters;
-	});
-
-	function formatRadius(value: number) {
+	function formatWidth(value: number) {
 		return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
 	}
 
-	function handleRadiusChange(event: Event) {
+	function handleWidthChange(event: Event) {
 		const value = Number((event.currentTarget as HTMLInputElement).value);
 		if (Number.isFinite(value)) {
-			nearbyStore.updateRadius(value);
+			routeSearchStore.updateWidth(value);
 		}
 	}
 </script>
 
-{#if $nearbyStore.active && !$routeSearchStore.active}
-	<div class="nearby-control">
-		<div class="nearby-header">
-			<span class="title">Nearby results</span>
+{#if $routeSearchStore.active && !$nearbyStore.active}
+	<div class="route-control">
+		<div class="route-header">
+			<span class="title">Along route</span>
 			<div class="actions">
 				{#if onEdit}
 					<button class="ghost" onclick={onEdit}>Filters</button>
 				{/if}
-				<button class="ghost" onclick={() => nearbyStore.clear()}>Clear</button>
+				{#if onRedraw}
+					<button class="ghost" onclick={onRedraw}>Redraw</button>
+				{/if}
+				<button class="ghost" onclick={() => routeSearchStore.clear()}>Clear</button>
 			</div>
 		</div>
-		<div class="radius-row">
+		<div class="width-row">
 			<input
 				type="range"
-				min="250"
-				max="3000"
-				step="250"
-				value={radiusMeters}
-				onchange={handleRadiusChange}
+				min="50"
+				max="1000"
+				step="25"
+				value={$routeSearchStore.widthMeters}
+				onchange={handleWidthChange}
 			/>
-			<span class="radius-value">{formatRadius($nearbyStore.radiusMeters)}</span>
+			<span class="width-value">{formatWidth($routeSearchStore.widthMeters)}</span>
 		</div>
 		<div class="meta">
-			{#if $nearbyStore.loading}
+			{#if $routeSearchStore.loading}
 				<span>Updating...</span>
 			{:else}
-				<span>{$nearbyStore.placeIds.length} places</span>
+				<span>{$routeSearchStore.placeIds.length} places</span>
 			{/if}
 		</div>
 	</div>
 {/if}
 
 <style>
-	.nearby-control {
+	.route-control {
 		position: absolute;
 		left: var(--spacing-md);
 		right: var(--spacing-md);
@@ -73,7 +72,7 @@
 		gap: var(--spacing-xs);
 	}
 
-	.nearby-header {
+	.route-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -91,6 +90,8 @@
 	.actions {
 		display: flex;
 		gap: var(--spacing-xs);
+		flex-wrap: wrap;
+		justify-content: flex-end;
 	}
 
 	.ghost {
@@ -107,18 +108,18 @@
 		background: #e5e7eb;
 	}
 
-	.radius-row {
+	.width-row {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-sm);
 	}
 
-	.radius-row input[type="range"] {
+	.width-row input[type="range"] {
 		flex: 1;
 		accent-color: var(--color-highlight);
 	}
 
-	.radius-value {
+	.width-value {
 		min-width: 64px;
 		text-align: right;
 		font-size: 13px;

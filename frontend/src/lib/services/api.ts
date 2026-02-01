@@ -4,7 +4,8 @@ import type {
 	Collection,
 	PlaceCreateInput,
 	PlaceUpdateInput,
-	NearbySearchParams
+	NearbySearchParams,
+	RouteSearchParams
 } from '$types';
 
 const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -96,6 +97,20 @@ export const placesApi = {
 		}
 
 		return request<Place[]>(`/places/nearby?${search.toString()}`);
+	},
+
+	alongRoute: (params: RouteSearchParams): Promise<Place[]> => {
+		return request<Place[]>('/places/along-route', {
+			method: 'POST',
+			body: JSON.stringify({
+				line: params.line,
+				width_meters: params.widthMeters,
+				mode: params.mode,
+				categories: params.categories,
+				routes: params.routes,
+				collection_ids: params.collectionIds
+			})
+		});
 	}
 };
 

@@ -4,6 +4,7 @@
 	import { layerStore } from '$stores/layers';
 	import { placesStore } from '$stores/places';
 	import { nearbyStore } from '$stores/nearby';
+	import { routeSearchStore } from '$stores/routeSearch';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
@@ -15,8 +16,14 @@
 	let leaflet: typeof L;
 	let markers: Map<string, L.Marker> = new Map();
 	let nearbyCircle: L.Circle | null = null;
+	let routeLine: L.Polyline | null = null;
 	let nearbyIdSet = new Set<string>();
+	let routeIdSet = new Set<string>();
 	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
+	let drawLine: L.Polyline | null = null;
+	let isDrawingStroke = false;
+	let drawPoints: L.LatLng[] = [];
+	let wasDrawing = false;
 
 	export let pinMode = false;
 
@@ -24,6 +31,13 @@
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
 		if ($routeBuilder.active && place.route === $routeBuilder.routeName && place.route_stop != null) {
 			return 'route';
+		}
+
+		if ($routeSearchStore.active) {
+			if (!routeIdSet.has(place.id)) {
+				return 'hidden';
+			}
+			return $routeSearchStore.mode === 'routes' ? 'route' : 'site';
 		}
 
 		if ($nearbyStore.active) {
@@ -72,6 +86,54 @@
 		} else if (pinClickHandler) {
 			map.off('click', pinClickHandler);
 		}
+	}
+
+	function updateDrawingLine(): void {
+		if (!map || !leaflet) return;
+		if (!drawLine) {
+			drawLine = leaflet.polyline(drawPoints, {
+				color: '#e94560',
+				weight: 4,
+				opacity: 0.9,
+				lineCap: 'round'
+			}).addTo(map);
+		} else {
+			drawLine.setLatLngs(drawPoints);
+		}
+	}
+
+	function handleDrawStart(e: L.LeafletMouseEvent) {
+		if (!map || !$routeSearchStore.drawing) return;
+		isDrawingStroke = true;
+		if (drawPoints.length === 0) {
+			drawPoints = [e.latlng];
+		} else {
+			drawPoints.push(e.latlng);
+		}
+		routeSearchStore.setLine(drawPoints.map(point => [point.lat, point.lng]));
+		updateDrawingLine();
+	}
+
+	function handleDrawMove(e: L.LeafletMouseEvent) {
+		if (!map || !$routeSearchStore.drawing) return;
+		if (!$routeSearchStore.painting && !isDrawingStroke) return;
+		const last = drawPoints[drawPoints.length - 1];
+		if (!last) {
+			drawPoints = [e.latlng];
+			routeSearchStore.setLine(drawPoints.map(point => [point.lat, point.lng]));
+			updateDrawingLine();
+			return;
+		}
+		const distance = last.distanceTo(e.latlng);
+		if (distance < 20) return;
+		drawPoints.push(e.latlng);
+		routeSearchStore.setLine(drawPoints.map(point => [point.lat, point.lng]));
+		updateDrawingLine();
+	}
+
+	function handleDrawEnd() {
+		if (!isDrawingStroke) return;
+		isDrawingStroke = false;
 	}
 
 	function createIcon(place: Place, mode: 'route' | 'site') {
@@ -269,6 +331,14 @@
 			}
 		});
 
+		map.on('mousedown', handleDrawStart);
+		map.on('mousemove', handleDrawMove);
+		map.on('mouseup', handleDrawEnd);
+		map.on('mouseout', handleDrawEnd);
+		map.on('touchstart', (e: L.LeafletMouseEvent) => handleDrawStart(e));
+		map.on('touchmove', (e: L.LeafletMouseEvent) => handleDrawMove(e));
+		map.on('touchend', () => handleDrawEnd());
+
 		await placesStore.fetchAll();
 		$placesStore.places.forEach(addMarker);
 	});
@@ -278,11 +348,19 @@
 			map.remove();
 			map = null;
 		}
+		if (routeLine) {
+			routeLine.remove();
+			routeLine = null;
+		}
+		if (drawLine) {
+			drawLine.remove();
+			drawLine = null;
+		}
 		markers.clear();
 	});
 
 	// React to layer changes — update visibility AND icons
-	$: if (map && $layerStore && $nearbyStore) {
+	$: if (map && $layerStore && $nearbyStore && $routeSearchStore) {
 		updateMarkers();
 	}
 
@@ -297,9 +375,39 @@
 		nearbyIdSet = new Set();
 	}
 
+	$: if ($routeSearchStore.active) {
+		routeIdSet = new Set($routeSearchStore.placeIds);
+	} else {
+		routeIdSet = new Set();
+	}
+
 	// Enable/disable pin click behavior for placement mode
 	$: if (map) {
 		setPinClickHandling();
+	}
+
+	// Toggle drawing mode
+	$: if (map) {
+		if ($routeSearchStore.drawing) {
+			if (!wasDrawing) {
+				drawPoints = [];
+			}
+			map.dragging.disable();
+			if ($routeSearchStore.painting) {
+				map.getContainer().style.cursor = 'crosshair';
+			} else {
+				map.getContainer().style.cursor = '';
+			}
+			wasDrawing = true;
+		} else {
+			map.dragging.enable();
+			map.getContainer().style.cursor = '';
+			if (drawLine) {
+				drawLine.remove();
+				drawLine = null;
+			}
+			wasDrawing = false;
+		}
 	}
 
 	// Render nearby radius overlay
@@ -324,6 +432,34 @@
 		} else if (nearbyCircle) {
 			nearbyCircle.remove();
 			nearbyCircle = null;
+		}
+	}
+
+	// Render route line overlay
+	$: if (map && leaflet) {
+		if ($routeSearchStore.drawing) {
+			if (routeLine) {
+				routeLine.remove();
+				routeLine = null;
+			}
+		} else if ($routeSearchStore.line.length > 0) {
+			const latlngs = $routeSearchStore.line.map(point => leaflet.latLng(point[0], point[1]));
+			if (!routeLine) {
+				routeLine = leaflet.polyline(latlngs, {
+					color: '#111827',
+					weight: 4,
+					opacity: 0.85,
+					lineCap: 'round'
+				}).addTo(map);
+			} else {
+				routeLine.setLatLngs(latlngs);
+				if (!map.hasLayer(routeLine)) {
+					routeLine.addTo(map);
+				}
+			}
+		} else if (routeLine) {
+			routeLine.remove();
+			routeLine = null;
 		}
 	}
 

@@ -5,7 +5,8 @@ import type {
 	UpdatePlaceDto,
 	Category,
 	Collection,
-	NearbyPlacesQuery
+	NearbyPlacesQuery,
+	AlongRoutePlacesQuery
 } from '../types/index.js';
 
 const TABLE_NAME = 'places';
@@ -214,6 +215,29 @@ export async function getNearbyPlaces(query: NearbyPlacesQuery): Promise<Place[]
 
 	if (error) {
 		throw new Error(`Failed to fetch nearby places: ${error.message}`);
+	}
+
+	return (data || []).map(place => {
+		const row = place as NearbyPlaceRow;
+		return { ...row, collections: row.collections ?? [] };
+	});
+}
+
+export async function getAlongRoutePlaces(query: AlongRoutePlacesQuery): Promise<Place[]> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.rpc('along_route_places', {
+			line: query.line,
+			width_meters: query.widthMeters,
+			mode: query.mode,
+			categories: query.categories && query.categories.length > 0 ? query.categories : null,
+			routes: query.routes && query.routes.length > 0 ? query.routes : null,
+			collection_ids: query.collectionIds && query.collectionIds.length > 0 ? query.collectionIds : null
+		});
+
+	if (error) {
+		throw new Error(`Failed to fetch along-route places: ${error.message}`);
 	}
 
 	return (data || []).map(place => {

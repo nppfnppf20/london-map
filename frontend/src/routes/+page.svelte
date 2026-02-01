@@ -6,17 +6,22 @@
 	import AddSiteToModal from '$components/ui/AddSiteToModal.svelte';
 	import NearbySearchModal from '$components/ui/NearbySearchModal.svelte';
 	import NearbyControl from '$components/ui/NearbyControl.svelte';
+	import RouteSearchModal from '$components/ui/RouteSearchModal.svelte';
+	import RouteSearchControl from '$components/ui/RouteSearchControl.svelte';
 	import CreateRouteModal from '$components/ui/CreateRouteModal.svelte';
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
 	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
+	import { routeSearchStore } from '$stores/routeSearch';
+	import { nearbyStore } from '$stores/nearby';
 
 	let addModalOpen = $state(false);
 	let routeModalOpen = $state(false);
 	let addSiteToOpen = $state(false);
 	let nearbyModalOpen = $state(false);
+	let routeSearchModalOpen = $state(false);
 	let addMenuOpen = $state(false);
 	let exploreMenuOpen = $state(false);
 	let pinMode = $state(false);
@@ -62,6 +67,22 @@
 	<LayerControl />
 	<RouteBanner />
 
+	{#if $routeSearchStore.drawing}
+		<button
+			class="draw-fab"
+			class:active={$routeSearchStore.painting}
+			aria-label="Draw route"
+			onclick={() => {
+				routeSearchStore.togglePainting();
+			}}
+		>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 20h9"/>
+				<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+			</svg>
+		</button>
+	{/if}
+
 	{#if !$routeBuilder.active}
 		<div class="bottom-bar">
 			<div class="menu-stack">
@@ -75,6 +96,16 @@
 							}}
 						>
 							Find near me
+						</button>
+						<button
+							class="menu-item ui-btn ui-btn-secondary"
+							onclick={() => {
+								closeMenus();
+								nearbyStore.clear();
+								routeSearchStore.startDrawing();
+							}}
+						>
+							Find along route
 						</button>
 					</div>
 				{/if}
@@ -140,6 +171,34 @@
 		</div>
 	{/if}
 
+	{#if $routeSearchStore.drawing}
+		<div class="pin-overlay">
+			<div class="pin-panel">
+				<p class="pin-title">Draw your route</p>
+				<p class="pin-help">Press and drag to sketch the route. Lift to finish.</p>
+				<div class="pin-actions">
+					<button
+						class="pin-btn secondary"
+						onclick={() => {
+							routeSearchStore.clear();
+						}}
+					>
+						Cancel
+					</button>
+					<button
+						class="pin-btn primary"
+						onclick={() => {
+							routeSearchStore.finishDrawing();
+							routeSearchModalOpen = true;
+						}}
+					>
+						Use this route
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<PlaceDetail
 		place={$routeBuilder.active ? null : $selectedPlace}
 		onClose={() => selectedPlace.clear()}
@@ -181,6 +240,19 @@
 		}}
 	/>
 	<NearbyControl onEdit={() => { nearbyModalOpen = true; }} />
+	<RouteSearchModal
+		open={routeSearchModalOpen}
+		onClose={() => {
+			routeSearchModalOpen = false;
+		}}
+	/>
+	<RouteSearchControl
+		onEdit={() => { routeSearchModalOpen = true; }}
+		onRedraw={() => {
+			nearbyStore.clear();
+			routeSearchStore.startDrawing();
+		}}
+	/>
 	<CreateRouteModal open={routeModalOpen} onClose={() => routeModalOpen = false} />
 </main>
 
@@ -325,5 +397,31 @@
 
 	.pin-btn:active {
 		opacity: 0.85;
+	}
+
+	.draw-fab {
+		position: absolute;
+		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+		bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px) + 72px);
+		z-index: 1100;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: white;
+		color: var(--color-primary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: var(--shadow-lg);
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.draw-fab:active {
+		transform: scale(0.96);
+	}
+
+	.draw-fab.active {
+		background: var(--color-highlight);
+		color: white;
 	}
 </style>
