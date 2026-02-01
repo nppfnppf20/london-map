@@ -21,6 +21,7 @@
 	let selectedCategories = $state<Category[]>([]);
 	let selectedRoutes = $state<string[]>([]);
 	let selectedCollections = $state<string[]>([]);
+	let step = $state<1 | 2 | 3>(1);
 	let searching = $state(false);
 	let error = $state('');
 	let location = $state<[number, number] | null>(center);
@@ -42,6 +43,7 @@
 				selectedCategories = [...$nearbyStore.categories];
 				selectedRoutes = [...$nearbyStore.routes];
 				selectedCollections = [...$nearbyStore.collectionIds];
+				step = 3;
 			} else {
 				mode = 'sites';
 				radiusMeters = 1000;
@@ -50,6 +52,7 @@
 				selectedCategories = [];
 				selectedRoutes = [];
 				selectedCollections = [];
+				step = 1;
 			}
 		}
 	});
@@ -94,21 +97,42 @@
 		return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
 	}
 
+	function canAdvanceStep2() {
+		if (mode === 'sites') {
+			return useAllCategories || selectedCategories.length > 0;
+		}
+		if (mode === 'routes') {
+			return useAllRoutes || selectedRoutes.length > 0;
+		}
+		return selectedCollections.length > 0;
+	}
+
+	function handleNextStep2() {
+		error = '';
+		if (!canAdvanceStep2()) {
+			error = 'Select at least one option to continue.';
+			return;
+		}
+		step = 3;
+	}
+
+	function handleBack() {
+		error = '';
+		if (step === 3) {
+			step = 2;
+			return;
+		}
+		if (step === 2) {
+			step = 1;
+		}
+	}
+
 	async function handleSearch() {
 		error = '';
 
-		if (mode === 'sites' && !useAllCategories && selectedCategories.length === 0) {
-			error = 'Select at least one category.';
-			return;
-		}
-
-		if (mode === 'routes' && !useAllRoutes && selectedRoutes.length === 0) {
-			error = 'Select at least one route.';
-			return;
-		}
-
-		if (mode === 'collections' && selectedCollections.length === 0) {
-			error = 'Select at least one collection.';
+		if (!canAdvanceStep2()) {
+			error = 'Select at least one option.';
+			step = 2;
 			return;
 		}
 
@@ -150,32 +174,58 @@
 			</div>
 
 			<div class="form">
-				<div class="section">
-					<span class="section-title">Step 1 - What are you looking for?</span>
-					<div class="pill-group">
-						<label class="pill">
-							<input type="radio" name="mode" value="sites" bind:group={mode} />
-							<span>Sites</span>
-						</label>
-						<label class="pill">
-							<input type="radio" name="mode" value="routes" bind:group={mode} />
-							<span>Routes</span>
-						</label>
-						<label class="pill">
-							<input type="radio" name="mode" value="collections" bind:group={mode} />
-							<span>Collections</span>
-						</label>
-					</div>
-				</div>
-
-				{#if mode === 'sites'}
+				{#if step === 1}
 					<div class="section">
-						<span class="section-title">Step 2 - Which categories?</span>
-						<label class="toggle">
-							<input type="checkbox" bind:checked={useAllCategories} />
-							<span>All categories</span>
-						</label>
-						{#if !useAllCategories}
+						<span class="section-title">Step 1 - What are you looking for?</span>
+						<div class="choice-grid">
+							<button
+								class="choice-btn card-btn"
+								onclick={() => {
+									mode = 'sites';
+									useAllCategories = true;
+									selectedCategories = [];
+									step = 3;
+								}}
+							>
+								Anything
+							</button>
+							<button
+								class="choice-btn card-btn"
+								onclick={() => {
+									mode = 'sites';
+									step = 2;
+								}}
+							>
+								Sites
+							</button>
+							<button
+								class="choice-btn card-btn"
+								onclick={() => {
+									mode = 'routes';
+									step = 2;
+								}}
+							>
+								Routes
+							</button>
+							<button
+								class="choice-btn card-btn"
+								onclick={() => {
+									mode = 'collections';
+									step = 2;
+								}}
+							>
+								From a collection
+							</button>
+						</div>
+					</div>
+				{:else if step === 2}
+					{#if mode === 'sites'}
+						<div class="section">
+							<span class="section-title">Step 2 - Which categories?</span>
+							<label class="toggle">
+								<input type="checkbox" bind:checked={useAllCategories} />
+								<span>All categories</span>
+							</label>
 							<div class="option-list">
 								{#each categories as [value, label]}
 									<label class="option-item">
@@ -183,88 +233,97 @@
 											type="checkbox"
 											checked={selectedCategories.includes(value)}
 											onchange={() => toggleCategory(value)}
+											disabled={useAllCategories}
 										/>
 										<span>{label}</span>
 									</label>
 								{/each}
 							</div>
-						{/if}
-					</div>
-				{:else if mode === 'routes'}
-					<div class="section">
-						<span class="section-title">Step 2 - Any route in particular?</span>
-						<label class="toggle">
-							<input type="checkbox" bind:checked={useAllRoutes} />
-							<span>All routes</span>
-						</label>
-						{#if !useAllRoutes}
-							<div class="option-list">
-								{#each Object.keys($routesStore) as route}
-									<label class="option-item">
-										<input
-											type="checkbox"
-											checked={selectedRoutes.includes(route)}
-											onchange={() => toggleRoute(route)}
-										/>
-										<span>{route}</span>
-									</label>
-								{/each}
-							</div>
-						{/if}
-					</div>
+						</div>
+					{:else if mode === 'routes'}
+						<div class="section">
+							<span class="section-title">Step 2 - Any route in particular?</span>
+							<label class="toggle">
+								<input type="checkbox" bind:checked={useAllRoutes} />
+								<span>All routes</span>
+							</label>
+							{#if !useAllRoutes}
+								<div class="option-list">
+									{#each Object.keys($routesStore) as route}
+										<label class="option-item">
+											<input
+												type="checkbox"
+												checked={selectedRoutes.includes(route)}
+												onchange={() => toggleRoute(route)}
+											/>
+											<span>{route}</span>
+										</label>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<div class="section">
+							<span class="section-title">Step 2 - Choose collections</span>
+							{#if $collectionsStore.loading}
+								<p class="placeholder">Loading collections...</p>
+							{:else if $collectionsStore.collections.length === 0}
+								<p class="placeholder">No collections yet.</p>
+							{:else}
+								<div class="option-list">
+									{#each $collectionsStore.collections as collection}
+										<label class="option-item">
+											<input
+												type="checkbox"
+												checked={selectedCollections.includes(collection.id)}
+												onchange={() => toggleCollection(collection.id)}
+											/>
+											<span>{collection.name}</span>
+										</label>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
 				{:else}
 					<div class="section">
-						<span class="section-title">Step 2 - Choose collections</span>
-						{#if $collectionsStore.loading}
-							<p class="placeholder">Loading collections...</p>
-						{:else if $collectionsStore.collections.length === 0}
-							<p class="placeholder">No collections yet.</p>
-						{:else}
-							<div class="option-list">
-								{#each $collectionsStore.collections as collection}
-									<label class="option-item">
-										<input
-											type="checkbox"
-											checked={selectedCollections.includes(collection.id)}
-											onchange={() => toggleCollection(collection.id)}
-										/>
-										<span>{collection.name}</span>
-									</label>
-								{/each}
-							</div>
-						{/if}
+						<span class="section-title">Step 3 - Radius</span>
+						<div class="radius">
+							<input
+								type="range"
+								min="250"
+								max="3000"
+								step="250"
+								value={radiusMeters}
+								oninput={(event) => {
+									radiusMeters = Number((event.currentTarget as HTMLInputElement).value);
+								}}
+							/>
+							<span class="radius-value">{formatRadius(radiusMeters)}</span>
+						</div>
+						<p class="coord-info">
+							Searching around {location ? `${location[0].toFixed(5)}, ${location[1].toFixed(5)}` : 'the map center'}.
+						</p>
 					</div>
 				{/if}
-
-				<div class="section">
-					<span class="section-title">Step 3 - Radius</span>
-					<div class="radius">
-						<input
-							type="range"
-							min="250"
-							max="3000"
-							step="250"
-							value={radiusMeters}
-							oninput={(event) => {
-								radiusMeters = Number((event.currentTarget as HTMLInputElement).value);
-							}}
-						/>
-						<span class="radius-value">{formatRadius(radiusMeters)}</span>
-					</div>
-					<p class="coord-info">
-						Searching around {location ? `${location[0].toFixed(5)}, ${location[1].toFixed(5)}` : 'the map center'}.
-					</p>
-				</div>
 
 				{#if error}
 					<p class="error">{error}</p>
 				{/if}
 
 				<div class="actions">
-					<button type="button" class="btn-cancel" onclick={onClose}>Cancel</button>
-					<button type="button" class="btn-save" onclick={handleSearch} disabled={searching}>
-						{searching ? 'Searching...' : 'Show results'}
+					<button type="button" class="btn-cancel" onclick={step === 1 ? onClose : handleBack}>
+						{step === 1 ? 'Cancel' : 'Back'}
 					</button>
+					{#if step === 2}
+						<button type="button" class="btn-save" onclick={handleNextStep2}>
+							Next
+						</button>
+					{:else if step === 3}
+						<button type="button" class="btn-save" onclick={handleSearch} disabled={searching}>
+							{searching ? 'Searching...' : 'Show results'}
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -350,27 +409,34 @@
 		color: #6b7280;
 	}
 
-	.pill-group {
-		display: flex;
+	.choice-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: var(--spacing-sm);
-		flex-wrap: wrap;
+		grid-auto-rows: 1fr;
 	}
 
-	.pill {
-		display: inline-flex;
+	.card-btn {
+		border-radius: 18px;
+		background: linear-gradient(180deg, #ffffff, #f1f5f9);
+		color: #0f172a;
+		border: 1px solid #e2e8f0;
+		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+		min-height: 120px;
+		padding: 18px;
+		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 8px 12px;
-		border-radius: 999px;
-		background: #f3f4f6;
-		color: #374151;
-		font-size: 13px;
-		font-weight: 600;
-		cursor: pointer;
+		justify-content: center;
+		text-align: center;
+		font-size: 17px;
+		font-weight: 800;
+		letter-spacing: 0.02em;
+		transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 	}
 
-	.pill input {
-		accent-color: var(--color-highlight);
+	.card-btn:active {
+		transform: translateY(2px) scale(0.98);
+		box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
 	}
 
 	.toggle {

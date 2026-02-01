@@ -17,6 +17,8 @@
 	let routeModalOpen = $state(false);
 	let addSiteToOpen = $state(false);
 	let nearbyModalOpen = $state(false);
+	let addMenuOpen = $state(false);
+	let exploreMenuOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | null>(null);
@@ -44,6 +46,11 @@
 		}
 		pinAction = null;
 	}
+
+	function closeMenus() {
+		addMenuOpen = false;
+		exploreMenuOpen = false;
+	}
 </script>
 
 <svelte:head>
@@ -57,15 +64,65 @@
 
 	{#if !$routeBuilder.active}
 		<div class="bottom-bar">
-			<button class="bar-btn primary" onclick={() => startPinMode('add')} aria-label="Add point">
-				Add site
-			</button>
-			<button class="bar-btn secondary" onclick={() => routeModalOpen = true} aria-label="Create route">
-				Create route
-			</button>
-			<button class="bar-btn secondary" onclick={() => startPinMode('nearby')} aria-label="Find near me">
-				Find near me
-			</button>
+			<div class="menu-stack">
+				{#if exploreMenuOpen}
+					<div class="action-menu">
+						<button
+							class="menu-item ui-btn ui-btn-secondary"
+							onclick={() => {
+								closeMenus();
+								startPinMode('nearby');
+							}}
+						>
+							Find near me
+						</button>
+					</div>
+				{/if}
+				<button
+					class="bar-btn ui-btn ui-btn-secondary"
+					onclick={() => {
+						addMenuOpen = false;
+						exploreMenuOpen = !exploreMenuOpen;
+					}}
+					aria-label="Explore"
+				>
+					Explore
+				</button>
+			</div>
+			<div class="menu-stack">
+				{#if addMenuOpen}
+					<div class="action-menu">
+						<button
+							class="menu-item ui-btn ui-btn-secondary"
+							onclick={() => {
+								closeMenus();
+								startPinMode('add');
+							}}
+						>
+							Add site
+						</button>
+						<button
+							class="menu-item ui-btn ui-btn-secondary"
+							onclick={() => {
+								closeMenus();
+								routeModalOpen = true;
+							}}
+						>
+							Create route
+						</button>
+					</div>
+				{/if}
+				<button
+					class="bar-btn primary ui-btn"
+					onclick={() => {
+						exploreMenuOpen = false;
+						addMenuOpen = !addMenuOpen;
+					}}
+					aria-label="Add"
+				>
+					Add
+				</button>
+			</div>
 		</div>
 	{/if}
 
@@ -150,13 +207,16 @@
 		box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.08);
 	}
 
-	.bar-btn {
+	.menu-stack {
+		position: relative;
 		flex: 1;
-		padding: 12px 14px;
-		border-radius: var(--radius-md);
-		font-size: 15px;
-		font-weight: 700;
-		-webkit-tap-highlight-color: transparent;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.bar-btn {
+		width: 100%;
 	}
 
 	.bar-btn.primary {
@@ -164,9 +224,28 @@
 		color: white;
 	}
 
-	.bar-btn.secondary {
-		background: #f3f4f6;
-		color: #374151;
+	.action-menu {
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 0;
+		right: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		background: white;
+		border-radius: var(--radius-md);
+		padding: var(--spacing-sm);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.menu-item {
+		width: 100%;
+		text-align: left;
+		font-size: 14px;
+	}
+
+	.menu-item:active {
+		opacity: 0.9;
 	}
 
 	.pin-overlay {
