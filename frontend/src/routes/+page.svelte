@@ -11,6 +11,7 @@
 	import CreateRouteModal from '$components/ui/CreateRouteModal.svelte';
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
 	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
+	import SearchBar from '$components/ui/SearchBar.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -66,6 +67,9 @@
 	<LeafletMap pinMode={pinMode} />
 	<LayerControl />
 	<RouteBanner />
+	{#if !pinMode && !$routeSearchStore.drawing}
+		<SearchBar />
+	{/if}
 
 	{#if $routeSearchStore.drawing}
 		<button

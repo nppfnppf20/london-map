@@ -7,6 +7,7 @@
 	import { routeSearchStore } from '$stores/routeSearch';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
+	import { directionsStore } from '$stores/directions';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
 	import type L from 'leaflet';
 	import type { Place, LayerState } from '$types';
@@ -17,6 +18,7 @@
 	let markers: Map<string, L.Marker> = new Map();
 	let nearbyCircle: L.Circle | null = null;
 	let routeLine: L.Polyline | null = null;
+	let directionsLine: L.Polyline | null = null;
 	let nearbyIdSet = new Set<string>();
 	let routeIdSet = new Set<string>();
 	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
@@ -24,6 +26,7 @@
 	let isDrawingStroke = false;
 	let drawPoints: L.LatLng[] = [];
 	let wasDrawing = false;
+	let lastFlyToTrigger = 0;
 
 	export let pinMode = false;
 
@@ -352,6 +355,10 @@
 			routeLine.remove();
 			routeLine = null;
 		}
+		if (directionsLine) {
+			directionsLine.remove();
+			directionsLine = null;
+		}
 		if (drawLine) {
 			drawLine.remove();
 			drawLine = null;
@@ -384,6 +391,12 @@
 	// Enable/disable pin click behavior for placement mode
 	$: if (map) {
 		setPinClickHandling();
+	}
+
+	// React to flyTo requests from the store
+	$: if (map && $mapStore.flyToTrigger > lastFlyToTrigger) {
+		lastFlyToTrigger = $mapStore.flyToTrigger;
+		map.flyTo($mapStore.center, $mapStore.zoom, { duration: 0.8 });
 	}
 
 	// Toggle drawing mode
@@ -460,6 +473,35 @@
 		} else if (routeLine) {
 			routeLine.remove();
 			routeLine = null;
+		}
+	}
+
+	// Render directions polyline (from OpenRouteService)
+	$: if (map && leaflet) {
+		if ($directionsStore.active && $directionsStore.result?.geometry) {
+			// ORS returns [lng, lat] pairs, Leaflet needs [lat, lng]
+			const latlngs = $directionsStore.result.geometry.map(
+				coord => leaflet.latLng(coord[1], coord[0])
+			);
+			if (!directionsLine) {
+				directionsLine = leaflet.polyline(latlngs, {
+					color: '#3b82f6',
+					weight: 5,
+					opacity: 0.8,
+					lineCap: 'round',
+					lineJoin: 'round'
+				}).addTo(map);
+				// Fit map to show the entire route
+				map.fitBounds(directionsLine.getBounds(), { padding: [50, 50] });
+			} else {
+				directionsLine.setLatLngs(latlngs);
+				if (!map.hasLayer(directionsLine)) {
+					directionsLine.addTo(map);
+				}
+			}
+		} else if (directionsLine) {
+			directionsLine.remove();
+			directionsLine = null;
 		}
 	}
 

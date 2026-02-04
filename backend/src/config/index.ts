@@ -9,6 +9,9 @@ export const config = {
 	},
 	cors: {
 		origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
+	},
+	ors: {
+		apiKey: process.env.ORS_API_KEY || ''
 	}
 };
 

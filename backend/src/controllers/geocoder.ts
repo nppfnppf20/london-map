@@ -41,3 +41,20 @@ export async function batch(req: Request, res: Response): Promise<void> {
 		res.status(500).json({ data: null, error: message });
 	}
 }
+
+export async function autocomplete(req: Request, res: Response): Promise<void> {
+	try {
+		const query = req.query.q as string;
+
+		if (!query || query.trim().length < 2) {
+			res.status(400).json({ data: null, error: 'Query must be at least 2 characters' });
+			return;
+		}
+
+		const results = await geocoderService.autocomplete(query.trim());
+		res.json({ data: results, error: null });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Autocomplete failed';
+		res.status(500).json({ data: null, error: message });
+	}
+}

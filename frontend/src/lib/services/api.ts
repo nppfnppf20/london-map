@@ -5,7 +5,10 @@ import type {
 	PlaceCreateInput,
 	PlaceUpdateInput,
 	NearbySearchParams,
-	RouteSearchParams
+	RouteSearchParams,
+	DirectionsParams,
+	MultiStopParams,
+	DirectionsResult
 } from '$types';
 
 const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -167,10 +170,30 @@ export const geocodeApi = {
 		return request<GeocodedPlace[]>(`/geocode/search?q=${encodeURIComponent(query)}`);
 	},
 
+	autocomplete: (query: string): Promise<GeocodedPlace[]> => {
+		return request<GeocodedPlace[]>(`/geocode/autocomplete?q=${encodeURIComponent(query)}`);
+	},
+
 	batch: (places: string[]): Promise<Record<string, GeocodedPlace | null>> => {
 		return request<Record<string, GeocodedPlace | null>>('/geocode/batch', {
 			method: 'POST',
 			body: JSON.stringify({ places })
+		});
+	}
+};
+
+export const routingApi = {
+	getDirections: (params: DirectionsParams): Promise<DirectionsResult> => {
+		return request<DirectionsResult>('/routing/directions', {
+			method: 'POST',
+			body: JSON.stringify(params)
+		});
+	},
+
+	getMultiStopRoute: (params: MultiStopParams): Promise<DirectionsResult> => {
+		return request<DirectionsResult>('/routing/multi-stop', {
+			method: 'POST',
+			body: JSON.stringify(params)
 		});
 	}
 };

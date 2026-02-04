@@ -84,3 +84,29 @@ export interface RouteSearchParams {
 	routes?: string[];
 	collectionIds?: string[];
 }
+
+export type TravelProfile = 'foot-walking' | 'cycling-regular' | 'driving-car';
+
+export interface DirectionsParams {
+	origin: { lat: number; lng: number };
+	destination: { lat: number; lng: number };
+	profile?: TravelProfile;
+}
+
+export interface MultiStopParams {
+	waypoints: { lat: number; lng: number }[];
+	profile?: TravelProfile;
+}
+
+export interface DirectionStep {
+	instruction: string;
+	distance: number;
+	duration: number;
+}
+
+export interface DirectionsResult {
+	geometry: [number, number][]; // [lng, lat] pairs
+	distance: number; // meters
+	duration: number; // seconds
+	steps?: DirectionStep[];
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Place } from '$types';
+	import type { Place, TravelProfile } from '$types';
 	import { getCategoryColor, CATEGORY_LABELS } from '$utils/map-helpers';
+	import { directionsStore, formatDuration, formatDistance, getGoogleMapsUrl } from '$stores/directions';
 
 interface Props {
 	place: Place | null;
@@ -9,6 +10,8 @@ interface Props {
 }
 
 let { place, onClose, onAddTo }: Props = $props();
+let gettingLocation = $state(false);
+let locationError = $state<string | null>(null);
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) {
@@ -20,6 +23,73 @@ let { place, onClose, onAddTo }: Props = $props();
 		if (e.key === 'Escape') {
 			onClose();
 		}
+	}
+
+	async function handleGetDirections() {
+		if (!place) return;
+
+		gettingLocation = true;
+		locationError = null;
+
+		if (!navigator.geolocation) {
+			locationError = 'Geolocation not supported';
+			gettingLocation = false;
+			return;
+		}
+
+		navigator.geolocation.getCurrentPosition(
+			async (position) => {
+				const origin = {
+					lat: position.coords.latitude,
+					lng: position.coords.longitude,
+					name: 'Your location'
+				};
+				const destination = {
+					lat: place!.latitude,
+					lng: place!.longitude,
+					name: place!.name
+				};
+
+				const success = await directionsStore.getDirections(origin, destination);
+				gettingLocation = false;
+
+				if (!success) {
+					locationError = 'Failed to get directions';
+				}
+			},
+			(error) => {
+				gettingLocation = false;
+				switch (error.code) {
+					case error.PERMISSION_DENIED:
+						locationError = 'Location permission denied';
+						break;
+					case error.POSITION_UNAVAILABLE:
+						locationError = 'Location unavailable';
+						break;
+					case error.TIMEOUT:
+						locationError = 'Location request timed out';
+						break;
+					default:
+						locationError = 'Failed to get location';
+				}
+			},
+			{ enableHighAccuracy: true, timeout: 10000 }
+		);
+	}
+
+	function handleOpenGoogleMaps() {
+		if (!place || !$directionsStore.origin) return;
+
+		const url = getGoogleMapsUrl(
+			$directionsStore.origin,
+			{ lat: place.latitude, lng: place.longitude },
+			'walking'
+		);
+		window.open(url, '_blank');
+	}
+
+	function handleClearDirections() {
+		directionsStore.clear();
 	}
 </script>
 
@@ -51,7 +121,52 @@ let { place, onClose, onAddTo }: Props = $props();
 						{#if place.route_stop} · Stop {place.route_stop}{/if}
 					</p>
 				{/if}
-				<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
+				<div class="action-buttons">
+					<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
+					{#if !$directionsStore.active || $directionsStore.destination?.lat !== place.latitude}
+						<button
+							class="directions-btn"
+							onclick={handleGetDirections}
+							disabled={gettingLocation || $directionsStore.loading}
+						>
+							{#if gettingLocation || $directionsStore.loading}
+								Getting directions…
+							{:else}
+								Get Directions
+							{/if}
+						</button>
+					{:else}
+						<button class="directions-btn clear" onclick={handleClearDirections}>
+							Clear Route
+						</button>
+					{/if}
+				</div>
+				{#if locationError}
+					<p class="error-text">{locationError}</p>
+				{/if}
+				{#if $directionsStore.active && $directionsStore.result && $directionsStore.destination?.lat === place.latitude}
+					<div class="directions-info">
+						<div class="directions-stats">
+							<span class="stat">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<circle cx="12" cy="12" r="10"/>
+									<path d="M12 6v6l4 2"/>
+								</svg>
+								{formatDuration($directionsStore.result.duration)}
+							</span>
+							<span class="stat">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+									<circle cx="12" cy="10" r="3"/>
+								</svg>
+								{formatDistance($directionsStore.result.distance)}
+							</span>
+						</div>
+						<button class="google-maps-btn" onclick={handleOpenGoogleMaps}>
+							Open in Google Maps
+						</button>
+					</div>
+				{/if}
 				<button class="close-btn" onclick={onClose} aria-label="Close">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -159,16 +274,88 @@ let { place, onClose, onAddTo }: Props = $props();
 		color: #6b7280;
 	}
 
-	.add-to-btn {
+	.action-buttons {
+		display: flex;
+		gap: var(--spacing-sm);
 		margin-top: var(--spacing-md);
+	}
+
+	.add-to-btn {
 		padding: 8px 12px;
 		border-radius: var(--radius-md);
 		background: #111827;
 		color: white;
 		font-size: 13px;
 		font-weight: 600;
-		width: fit-content;
 		-webkit-tap-highlight-color: transparent;
+	}
+
+	.directions-btn {
+		padding: 8px 12px;
+		border-radius: var(--radius-md);
+		background: #3b82f6;
+		color: white;
+		font-size: 13px;
+		font-weight: 600;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.directions-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.directions-btn.clear {
+		background: #6b7280;
+	}
+
+	.error-text {
+		margin: var(--spacing-sm) 0 0 0;
+		font-size: 12px;
+		color: #ef4444;
+	}
+
+	.directions-info {
+		margin-top: var(--spacing-md);
+		padding: var(--spacing-md);
+		background: #f0f9ff;
+		border-radius: var(--radius-md);
+		border: 1px solid #bae6fd;
+	}
+
+	.directions-stats {
+		display: flex;
+		gap: var(--spacing-lg);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.stat {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		font-size: 14px;
+		font-weight: 600;
+		color: #0369a1;
+	}
+
+	.stat svg {
+		color: #0ea5e9;
+	}
+
+	.google-maps-btn {
+		margin-top: var(--spacing-sm);
+		padding: 6px 10px;
+		border-radius: var(--radius-sm);
+		background: white;
+		color: #0369a1;
+		font-size: 12px;
+		font-weight: 600;
+		border: 1px solid #7dd3fc;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.google-maps-btn:active {
+		background: #e0f2fe;
 	}
 
 	.close-btn {
