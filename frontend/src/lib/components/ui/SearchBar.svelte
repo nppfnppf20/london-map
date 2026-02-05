@@ -124,9 +124,15 @@
 		position: absolute;
 		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
 		left: var(--spacing-md);
-		right: var(--spacing-md);
+		right: calc(var(--spacing-md) + 100px); /* Leave room for Layers button */
 		z-index: 1100;
 		max-width: 400px;
+	}
+
+	@media (min-width: 500px) {
+		.search-container {
+			right: var(--spacing-md);
+		}
 	}
 
 	.search-input-wrapper {

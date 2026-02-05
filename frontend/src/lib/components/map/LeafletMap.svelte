@@ -27,6 +27,9 @@
 	let drawPoints: L.LatLng[] = [];
 	let wasDrawing = false;
 	let lastFlyToTrigger = 0;
+	let locationMarker: L.Marker | null = null;
+	let locationAccuracyCircle: L.Circle | null = null;
+	let watchId: number | null = null;
 
 	export let pinMode = false;
 
@@ -250,6 +253,68 @@
 		selectedPlace.select(place);
 	}
 
+	function updateLocationMarker(lat: number, lng: number, accuracy: number) {
+		if (!map || !leaflet) return;
+
+		const latlng = leaflet.latLng(lat, lng);
+
+		// Create or update the accuracy circle
+		if (!locationAccuracyCircle) {
+			locationAccuracyCircle = leaflet.circle(latlng, {
+				radius: accuracy,
+				color: '#3b82f6',
+				fillColor: '#3b82f6',
+				fillOpacity: 0.1,
+				weight: 1,
+				opacity: 0.3
+			}).addTo(map);
+		} else {
+			locationAccuracyCircle.setLatLng(latlng);
+			locationAccuracyCircle.setRadius(accuracy);
+		}
+
+		// Create or update the location dot
+		if (!locationMarker) {
+			const locationIcon = leaflet.divIcon({
+				className: 'current-location-marker',
+				html: `<div class="location-dot">
+					<div class="location-dot-inner"></div>
+					<div class="location-dot-pulse"></div>
+				</div>`,
+				iconSize: [20, 20],
+				iconAnchor: [10, 10]
+			});
+			locationMarker = leaflet.marker(latlng, {
+				icon: locationIcon,
+				zIndexOffset: 2000
+			}).addTo(map);
+		} else {
+			locationMarker.setLatLng(latlng);
+		}
+	}
+
+	function startLocationWatch() {
+		if (!navigator.geolocation) return;
+
+		watchId = navigator.geolocation.watchPosition(
+			(position) => {
+				updateLocationMarker(
+					position.coords.latitude,
+					position.coords.longitude,
+					position.coords.accuracy
+				);
+			},
+			(error) => {
+				console.warn('Geolocation error:', error.message);
+			},
+			{
+				enableHighAccuracy: true,
+				timeout: 10000,
+				maximumAge: 5000
+			}
+		);
+	}
+
 	function addMarker(place: Place) {
 		if (!map) return;
 
@@ -344,9 +409,16 @@
 
 		await placesStore.fetchAll();
 		$placesStore.places.forEach(addMarker);
+
+		// Start watching user location
+		startLocationWatch();
 	});
 
 	onDestroy(() => {
+		if (watchId !== null) {
+			navigator.geolocation.clearWatch(watchId);
+			watchId = null;
+		}
 		if (map) {
 			map.remove();
 			map = null;
@@ -536,5 +608,53 @@
 	:global(.leaflet-control-attribution) {
 		font-size: 10px;
 		padding-bottom: env(safe-area-inset-bottom, 0px);
+	}
+
+	:global(.current-location-marker) {
+		background: transparent !important;
+		border: none !important;
+	}
+
+	:global(.location-dot) {
+		position: relative;
+		width: 20px;
+		height: 20px;
+	}
+
+	:global(.location-dot-inner) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 14px;
+		height: 14px;
+		background: #3b82f6;
+		border: 3px solid white;
+		border-radius: 50%;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+	}
+
+	:global(.location-dot-pulse) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 20px;
+		height: 20px;
+		background: #3b82f6;
+		border-radius: 50%;
+		opacity: 0.4;
+		animation: location-pulse 2s ease-out infinite;
+	}
+
+	@keyframes location-pulse {
+		0% {
+			transform: translate(-50%, -50%) scale(1);
+			opacity: 0.4;
+		}
+		100% {
+			transform: translate(-50%, -50%) scale(2.5);
+			opacity: 0;
+		}
 	}
 </style>
