@@ -207,7 +207,7 @@
 									step = 2;
 								}}
 							>
-								Routes
+								Tours
 							</button>
 							<button
 								class="choice-btn card-btn"

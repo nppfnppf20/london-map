@@ -57,20 +57,19 @@
 
 <style>
 	.banner {
-		position: absolute;
-		top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
-		left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
-		right: calc(64px + var(--spacing-md) + env(safe-area-inset-right, 0px));
-		z-index: 1001;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 1100;
 		background: white;
-		border-radius: var(--radius-md);
-		box-shadow: var(--shadow-lg);
-		padding: var(--spacing-sm) var(--spacing-md);
+		box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.08);
+		padding: var(--spacing-sm) var(--spacing-md) calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--spacing-sm);
-		border-left: 4px solid #6b7280;
+		border-top: 4px solid #6b7280;
 	}
 
 	.info {

@@ -8,7 +8,7 @@
 	let expanded = false;
 	const viewModes: { key: ViewMode; label: string }[] = [
 		{ key: 'sites', label: 'Sites' },
-		{ key: 'routes', label: 'Routes' },
+		{ key: 'routes', label: 'Tours' },
 		{ key: 'collections', label: 'Collections' }
 	];
 
@@ -27,7 +27,7 @@
 	}
 </script>
 
-<div class="layer-control" class:expanded>
+<div class="layer-toggle">
 	<button class="toggle-btn" onclick={toggleExpand} aria-label="Toggle layer controls">
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -36,94 +36,106 @@
 		</svg>
 		<span>Layers</span>
 	</button>
+</div>
 
-	{#if expanded}
-		<div class="layer-list">
-			<div class="section">
-				<span class="section-title">View by</span>
-				<div class="view-mode">
-					{#each viewModes as mode}
-						<button
-							type="button"
-							class="mode-btn"
-							class:active={$layerStore.viewMode === mode.key}
-							onclick={() => layerStore.setViewMode(mode.key)}
-						>
-							{mode.label}
-						</button>
-					{/each}
-				</div>
+{#if expanded}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="layer-backdrop" onclick={toggleExpand}>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="layer-panel" onclick={(e) => e.stopPropagation()}>
+			<div class="panel-header">
+				<span class="panel-title">Layers</span>
+				<button class="panel-close" onclick={toggleExpand} aria-label="Close">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M18 6L6 18M6 6l12 12"/>
+					</svg>
+				</button>
 			</div>
-
-			{#if $layerStore.viewMode === 'collections'}
+			<div class="layer-list">
 				<div class="section">
-					<span class="section-title">Collections</span>
-					{#if $collectionsStore.loading}
-						<p class="empty-note">Loading collections...</p>
-					{:else if $collectionsStore.collections.length === 0}
-						<p class="empty-note">No collections yet.</p>
-					{:else}
-						{#each $collectionsStore.collections as collection}
+					<span class="section-title">View by</span>
+					<div class="view-mode">
+						{#each viewModes as mode}
+							<button
+								type="button"
+								class="mode-btn"
+								class:active={$layerStore.viewMode === mode.key}
+								onclick={() => layerStore.setViewMode(mode.key)}
+							>
+								{mode.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				{#if $layerStore.viewMode === 'collections'}
+					<div class="section">
+						<span class="section-title">Collections</span>
+						{#if $collectionsStore.loading}
+							<p class="empty-note">Loading collections...</p>
+						{:else if $collectionsStore.collections.length === 0}
+							<p class="empty-note">No collections yet.</p>
+						{:else}
+							{#each $collectionsStore.collections as collection}
+								<label class="layer-item">
+									<input
+										type="checkbox"
+										checked={$layerStore.collections[collection.id]}
+										onchange={() => layerStore.toggleCollection(collection.id)}
+									/>
+									<span
+										class="color-dot"
+										style="background-color: {collection.color || '#94a3b8'}"
+									></span>
+									<span class="label">{collection.name}</span>
+								</label>
+							{/each}
+						{/if}
+					</div>
+				{:else if $layerStore.viewMode === 'sites'}
+					<div class="section">
+						<span class="section-title">Sites</span>
+						{#each categories as cat}
 							<label class="layer-item">
 								<input
 									type="checkbox"
-									checked={$layerStore.collections[collection.id]}
-									onchange={() => layerStore.toggleCollection(collection.id)}
+									checked={$layerStore.sites[cat.key]}
+									onchange={() => layerStore.toggleSite(cat.key)}
 								/>
-								<span
-									class="color-dot"
-									style="background-color: {collection.color || '#94a3b8'}"
-								></span>
-								<span class="label">{collection.name}</span>
+								<span class="color-dot" style="background-color: {cat.color}"></span>
+								<span class="label">{cat.label}</span>
 							</label>
 						{/each}
-					{/if}
-				</div>
-			{:else if $layerStore.viewMode === 'sites'}
-				<div class="section">
-					<span class="section-title">Sites</span>
-					{#each categories as cat}
-						<label class="layer-item">
-							<input
-								type="checkbox"
-								checked={$layerStore.sites[cat.key]}
-								onchange={() => layerStore.toggleSite(cat.key)}
-							/>
-							<span class="color-dot" style="background-color: {cat.color}"></span>
-							<span class="label">{cat.label}</span>
-						</label>
-					{/each}
-				</div>
-			{:else}
-				<div class="section">
-					<span class="section-title">Routes</span>
-					{#each Object.entries($routesStore) as [name, color]}
-						<label class="layer-item">
-							<input
-								type="checkbox"
-								checked={$layerStore.routes[name]}
-								onchange={() => layerStore.toggleRoute(name)}
-							/>
-							<span class="color-dot" style="background-color: {color}"></span>
-							<span class="label">{name}</span>
-						</label>
-					{/each}
-				</div>
-			{/if}
+					</div>
+				{:else}
+					<div class="section">
+						<span class="section-title">Tours</span>
+						{#each Object.entries($routesStore) as [name, color]}
+							<label class="layer-item">
+								<input
+									type="checkbox"
+									checked={$layerStore.routes[name]}
+									onchange={() => layerStore.toggleRoute(name)}
+								/>
+								<span class="color-dot" style="background-color: {color}"></span>
+								<span class="label">{name}</span>
+							</label>
+						{/each}
+					</div>
+				{/if}
+			</div>
 		</div>
-	{/if}
-</div>
+	</div>
+{/if}
 
 <style>
-	.layer-control {
+	.layer-toggle {
 		position: absolute;
 		top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
 		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
 		z-index: 1000;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: var(--spacing-sm);
 		-webkit-user-select: none;
 		user-select: none;
 	}
@@ -148,13 +160,60 @@
 		transform: scale(0.92);
 	}
 
+	.layer-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 2000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--spacing-md);
+	}
+
+	.layer-panel {
+		background: white;
+		border-radius: var(--radius-lg);
+		width: 100%;
+		max-width: 360px;
+		max-height: 80vh;
+		display: flex;
+		flex-direction: column;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+	}
+
+	.panel-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--spacing-md) var(--spacing-lg);
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	.panel-title {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--color-primary);
+	}
+
+	.panel-close {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		background: #f3f4f6;
+		color: #374151;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.panel-close:active {
+		background: #e5e7eb;
+	}
 
 	.layer-list {
-		background: white;
-		border-radius: var(--radius-md);
 		padding: var(--spacing-sm);
-		box-shadow: var(--shadow-lg);
-		min-width: 210px;
 		max-height: 70vh;
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
