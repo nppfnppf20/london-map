@@ -217,7 +217,7 @@ export async function getNearbyPlaces(query: NearbyPlacesQuery): Promise<Place[]
 		throw new Error(`Failed to fetch nearby places: ${error.message}`);
 	}
 
-	return (data || []).map(place => {
+	return (data || []).map((place: any) => {
 		const row = place as NearbyPlaceRow;
 		return { ...row, collections: row.collections ?? [] };
 	});
@@ -240,7 +240,7 @@ export async function getAlongRoutePlaces(query: AlongRoutePlacesQuery): Promise
 		throw new Error(`Failed to fetch along-route places: ${error.message}`);
 	}
 
-	return (data || []).map(place => {
+	return (data || []).map((place: any) => {
 		const row = place as NearbyPlaceRow;
 		return { ...row, collections: row.collections ?? [] };
 	});
