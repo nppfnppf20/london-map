@@ -17,6 +17,7 @@
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { routeSearchStore } from '$stores/routeSearch';
 	import { nearbyStore } from '$stores/nearby';
+	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
 
 	let addModalOpen = $state(false);
 	let routeModalOpen = $state(false);
@@ -200,6 +201,24 @@
 					</button>
 				</div>
 			</div>
+		</div>
+	{/if}
+
+	{#if $directionsStore.active && $directionsStore.result}
+		<div class="directions-banner">
+			<div class="directions-banner-info">
+				<span class="directions-banner-label">
+					{$directionsStore.destination?.name || 'Destination'}
+				</span>
+				<span class="directions-banner-stats">
+					{formatDuration($directionsStore.result.duration)} · {formatDistance($directionsStore.result.distance)}
+				</span>
+			</div>
+			<button class="directions-banner-clear" onclick={() => directionsStore.clear()}>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M18 6L6 18M6 6l12 12"/>
+				</svg>
+			</button>
 		</div>
 	{/if}
 
@@ -427,5 +446,58 @@
 	.draw-fab.active {
 		background: var(--color-highlight);
 		color: white;
+	}
+
+	.directions-banner {
+		position: fixed;
+		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 1100;
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		background: white;
+		padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+		max-width: min(400px, calc(100vw - 2 * var(--spacing-md)));
+	}
+
+	.directions-banner-info {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.directions-banner-label {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--color-primary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.directions-banner-stats {
+		font-size: 12px;
+		color: #6b7280;
+	}
+
+	.directions-banner-clear {
+		flex-shrink: 0;
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		background: #f3f4f6;
+		color: #374151;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.directions-banner-clear:active {
+		background: #e5e7eb;
 	}
 </style>
