@@ -68,8 +68,8 @@
 </script>
 
 <div class="search-container">
-	<div class="search-input-wrapper">
-		<svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+	<div class="search-input-wrapper ui-input-wrap">
+		<svg class="search-icon ui-control-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<circle cx="11" cy="11" r="8"/>
 			<path d="M21 21l-4.35-4.35"/>
 		</svg>
@@ -82,7 +82,7 @@
 			onkeydown={handleKeydown}
 			type="text"
 			placeholder="Search London..."
-			class="search-input"
+			class="search-input ui-input"
 			autocomplete="off"
 			autocorrect="off"
 			autocapitalize="off"
@@ -91,7 +91,7 @@
 		{#if loading}
 			<div class="spinner"></div>
 		{:else if query.length > 0}
-			<button class="clear-btn" onclick={clearSearch} aria-label="Clear search">
+			<button class="clear-btn ui-control-clear" onclick={clearSearch} aria-label="Clear search">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M18 6L6 18M6 6l12 12"/>
 				</svg>
@@ -135,59 +135,15 @@
 		}
 	}
 
-	.search-input-wrapper {
-		position: relative;
-		display: flex;
-		align-items: center;
-		background: white;
-		border-radius: var(--radius-lg);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		height: var(--control-height);
-	}
-
-	.search-icon {
-		position: absolute;
-		left: 12px;
-		color: #9ca3af;
-		pointer-events: none;
-	}
-
 	.search-input {
-		width: 100%;
 		padding: 0 40px 0 40px;
-		height: var(--control-height);
-		border: none;
 		border-radius: var(--radius-lg);
-		font-size: 13px;
-		color: var(--color-primary);
-		background: transparent;
 	}
 
 	.search-input::placeholder {
 		color: #9ca3af;
 	}
 
-	.search-input:focus {
-		outline: none;
-	}
-
-	.clear-btn {
-		position: absolute;
-		right: 8px;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		background: #f3f4f6;
-		color: #6b7280;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.clear-btn:active {
-		background: #e5e7eb;
-	}
 
 	.spinner {
 		position: absolute;
@@ -211,7 +167,7 @@
 		right: 0;
 		background: white;
 		border-radius: var(--radius-lg);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		box-shadow: var(--shadow-md);
 		list-style: none;
 		margin: 0;
 		padding: 6px;

@@ -28,7 +28,7 @@
 </script>
 
 <div class="layer-toggle">
-	<button class="toggle-btn ui-btn ui-btn-secondary ui-btn-sm" onclick={toggleExpand} aria-label="Toggle map">
+	<button class="toggle-btn ui-btn ui-btn-secondary ui-btn-sm ui-btn-control" onclick={toggleExpand} aria-label="Toggle map">
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="M12 2L2 7l10 5 10-5-10-5z"/>
 			<path d="M2 17l10 5 10-5"/>
@@ -44,9 +44,9 @@
 	<div class="layer-backdrop" onclick={toggleExpand}>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="layer-panel" onclick={(e) => e.stopPropagation()}>
-			<div class="panel-header">
-				<span class="panel-title">Layers</span>
+		<div class="layer-panel ui-panel" onclick={(e) => e.stopPropagation()}>
+			<div class="panel-header ui-panel-header">
+				<span class="panel-title ui-panel-title">Layers</span>
 				<button class="panel-close close-btn" onclick={toggleExpand} aria-label="Close">
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -60,7 +60,7 @@
 						{#each viewModes as mode}
 							<button
 								type="button"
-								class="mode-btn"
+								class="mode-btn ui-mode-btn"
 								class:active={$layerStore.viewMode === mode.key}
 								onclick={() => layerStore.setViewMode(mode.key)}
 							>
@@ -79,7 +79,7 @@
 							<p class="empty-note">No collections yet.</p>
 						{:else}
 							{#each $collectionsStore.collections as collection}
-								<label class="layer-item">
+								<label class="layer-item ui-item">
 									<input
 										type="checkbox"
 										checked={$layerStore.collections[collection.id]}
@@ -98,7 +98,7 @@
 					<div class="section">
 						<span class="section-title">Sites</span>
 						{#each categories as cat}
-							<label class="layer-item">
+							<label class="layer-item ui-item">
 								<input
 									type="checkbox"
 									checked={$layerStore.sites[cat.key]}
@@ -113,7 +113,7 @@
 					<div class="section">
 						<span class="section-title">Tours</span>
 						{#each Object.entries($routesStore) as [name, color]}
-							<label class="layer-item">
+							<label class="layer-item ui-item">
 								<input
 									type="checkbox"
 									checked={$layerStore.routes[name]}
@@ -179,20 +179,6 @@
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 	}
 
-	.panel-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: var(--spacing-md) var(--spacing-lg);
-		border-bottom: 1px solid #e5e7eb;
-	}
-
-	.panel-title {
-		font-size: 16px;
-		font-weight: 700;
-		color: var(--color-primary);
-	}
-
 	.panel-close {
 		width: 40px;
 		height: 40px;
@@ -237,46 +223,7 @@
 	}
 
 	.mode-btn {
-		border: 1px solid #e5e7eb;
-		background: #f9fafb;
-		color: #374151;
-		border-radius: var(--radius-sm);
-		padding: 6px 8px;
-		font-size: 12px;
-		font-weight: 600;
-		transition: background 0.15s ease-out, border-color 0.15s ease-out;
-		cursor: pointer;
-	}
-
-	.mode-btn.active {
-		background: var(--color-primary);
-		color: white;
-		border-color: var(--color-primary);
-	}
-
-	.mode-btn:active {
-		transform: scale(0.98);
-	}
-
-	.layer-item {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-		padding: var(--spacing-sm) var(--spacing-sm);
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		color: var(--color-primary);
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.layer-item:active {
-		background: #e5e7eb;
-	}
-
-	@media (hover: hover) {
-		.layer-item:hover {
-			background: #f3f4f6;
-		}
+		border: 1px solid var(--gray-200);
 	}
 
 	.color-dot {
