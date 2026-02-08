@@ -14,6 +14,7 @@
 	import SearchBar from '$components/ui/SearchBar.svelte';
 	import AuthModal from '$components/ui/AuthModal.svelte';
 	import MenuNav from '$components/ui/MenuNav.svelte';
+	import ExploreModal from '$components/ui/ExploreModal.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -29,7 +30,7 @@
 	let nearbyModalOpen = $state(false);
 	let routeSearchModalOpen = $state(false);
 	let addMenuOpen = $state(false);
-	let exploreMenuOpen = $state(false);
+	let exploreModalOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | null>(null);
@@ -101,7 +102,28 @@
 
 	function closeMenus() {
 		addMenuOpen = false;
-		exploreMenuOpen = false;
+		exploreModalOpen = false;
+	}
+
+	function startNearbyFlow() {
+		exploreModalOpen = false;
+		if (!navigator.geolocation) {
+			startPinMode('nearby');
+			return;
+		}
+
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
+				pinCoords = coords;
+				mapStore.flyTo(coords, 15);
+				nearbyModalOpen = true;
+			},
+			() => {
+				startPinMode('nearby');
+			},
+			{ enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+		);
 	}
 </script>
 
@@ -144,119 +166,111 @@
 
 	<section class="menu-pane">
 		<div class="menu-surface">
-			<div class="menu-grip" aria-hidden="true"></div>
-			<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
-			<div class="menu-divider ui-divider" aria-hidden="true"></div>
-			<div class="filter-row ui-chip-row" aria-label="Filter scope">
-				<button
-					type="button"
-					class="filter-chip ui-chip"
-					class:active={filterScopes.has('Friends')}
-					onclick={() => { toggleScope('Friends'); }}
-				>
-					Friends
-				</button>
-				<button
-					type="button"
-					class="filter-chip ui-chip"
-					class:active={filterScopes.has('Friends of Friends')}
-					onclick={() => { toggleScope('Friends of Friends'); }}
-				>
-					Friends of Friends
-				</button>
-				<button
-					type="button"
-					class="filter-chip ui-chip"
-					class:active={filterScopes.has('Public')}
-					onclick={() => { toggleScope('Public'); }}
-				>
-					Public
-				</button>
-				<button
-					type="button"
-					class="filter-chip ui-chip"
-					class:active={filterScopes.has('Private')}
-					onclick={() => { toggleScope('Private'); }}
-				>
-					Private
-				</button>
-			</div>
-			<div class="menu-list ui-list">
-				{#if menuTab === 'Places'}
-					{#each PLACE_ITEMS as place}
+			{#if exploreModalOpen}
+				<ExploreModal
+					open={exploreModalOpen}
+					onClose={() => exploreModalOpen = false}
+					onNear={() => {
+						startNearbyFlow();
+					}}
+					onRoute={() => {
+						exploreModalOpen = false;
+						nearbyStore.clear();
+						routeSearchStore.startDrawing();
+					}}
+				/>
+			{:else}
+				<div class="menu-grip" aria-hidden="true"></div>
+				<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
+				<div class="menu-divider ui-divider" aria-hidden="true"></div>
+				<div class="filter-row ui-chip-row" aria-label="Filter scope">
+					<button
+						type="button"
+						class="filter-chip ui-chip"
+						class:active={filterScopes.has('Friends')}
+						onclick={() => { toggleScope('Friends'); }}
+					>
+						Friends
+					</button>
+					<button
+						type="button"
+						class="filter-chip ui-chip"
+						class:active={filterScopes.has('Friends of Friends')}
+						onclick={() => { toggleScope('Friends of Friends'); }}
+					>
+						Friends of Friends
+					</button>
+					<button
+						type="button"
+						class="filter-chip ui-chip"
+						class:active={filterScopes.has('Public')}
+						onclick={() => { toggleScope('Public'); }}
+					>
+						Public
+					</button>
+					<button
+						type="button"
+						class="filter-chip ui-chip"
+						class:active={filterScopes.has('Private')}
+						onclick={() => { toggleScope('Private'); }}
+					>
+						Private
+					</button>
+				</div>
+				<div class="menu-list ui-list">
+					{#if menuTab === 'Places'}
+						{#each PLACE_ITEMS as place}
+							<div class="menu-item-card ui-card">
+								<div class="menu-item-main">
+									<p class="menu-item-name">
+										<span class="menu-item-dot ui-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
+										{place.name}
+									</p>
+									<p class="menu-item-meta ui-meta">
+										<span>{CATEGORY_LABELS[place.category]}</span>
+										<span>&middot;</span>
+										<span>{formatDistance(distanceMeters(LONDON_CENTER, [place.lat, place.lng]))}</span>
+									</p>
+								</div>
+								<p class="menu-item-contrib ui-meta ui-muted">By {place.contributor}</p>
+							</div>
+						{/each}
+					{:else if menuTab === 'Lists'}
 						<div class="menu-item-card ui-card">
 							<div class="menu-item-main">
-								<p class="menu-item-name">
-									<span class="menu-item-dot ui-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
-									{place.name}
-								</p>
-								<p class="menu-item-meta ui-meta">
-									<span>{CATEGORY_LABELS[place.category]}</span>
-									<span>&middot;</span>
-									<span>{formatDistance(distanceMeters(LONDON_CENTER, [place.lat, place.lng]))}</span>
-								</p>
+								<p class="menu-item-name">John Voyage Pubs</p>
+								<p class="menu-item-meta ui-meta">By Sam Baker</p>
 							</div>
-							<p class="menu-item-contrib ui-meta ui-muted">By {place.contributor}</p>
 						</div>
-					{/each}
-				{:else if menuTab === 'Lists'}
-					<div class="menu-item-card ui-card">
-						<div class="menu-item-main">
-							<p class="menu-item-name">John Voyage Pubs</p>
-							<p class="menu-item-meta ui-meta">By Sam Baker</p>
+						<div class="menu-item-card ui-card">
+							<div class="menu-item-main">
+								<p class="menu-item-name">The Shamans Pubs</p>
+								<p class="menu-item-meta ui-meta">By Jack Shearman</p>
+							</div>
 						</div>
-					</div>
-					<div class="menu-item-card ui-card">
-						<div class="menu-item-main">
-							<p class="menu-item-name">The Shamans Pubs</p>
-							<p class="menu-item-meta ui-meta">By Jack Shearman</p>
+						<div class="menu-item-card ui-card">
+							<div class="menu-item-main">
+								<p class="menu-item-name">Restaurants</p>
+								<p class="menu-item-meta ui-meta">By Stan</p>
+							</div>
 						</div>
-					</div>
-					<div class="menu-item-card ui-card">
-						<div class="menu-item-main">
-							<p class="menu-item-name">Restaurants</p>
-							<p class="menu-item-meta ui-meta">By Stan</p>
-						</div>
-					</div>
-				{:else}
-					<div class="menu-item-placeholder"></div>
-					<div class="menu-item-placeholder"></div>
-					<div class="menu-item-placeholder"></div>
-				{/if}
-			</div>
+					{:else}
+						<div class="menu-item-placeholder"></div>
+						<div class="menu-item-placeholder"></div>
+						<div class="menu-item-placeholder"></div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 
 		{#if !$routeBuilder.active}
 			<div class="bottom-bar">
 				<div class="menu-stack">
-					{#if exploreMenuOpen}
-						<div class="action-menu">
-							<button
-								class="menu-item ui-btn ui-btn-secondary"
-								onclick={() => {
-									closeMenus();
-									startPinMode('nearby');
-								}}
-							>
-								Find near me
-							</button>
-							<button
-								class="menu-item ui-btn ui-btn-secondary"
-								onclick={() => {
-									closeMenus();
-									nearbyStore.clear();
-									routeSearchStore.startDrawing();
-								}}
-							>
-								Find along route
-							</button>
-						</div>
-					{/if}
 					<button
 						class="bar-btn ui-btn ui-btn-secondary"
 						onclick={() => {
 							addMenuOpen = false;
-							exploreMenuOpen = !exploreMenuOpen;
+							exploreModalOpen = true;
 						}}
 						aria-label="Explore"
 					>
@@ -290,7 +304,7 @@
 						class="bar-btn ui-btn ui-btn-secondary"
 						onclick={() => {
 							addMenuOpen = false;
-							exploreMenuOpen = false;
+							exploreModalOpen = false;
 							authModalOpen = true;
 						}}
 						aria-label="Login"

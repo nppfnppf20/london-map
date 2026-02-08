@@ -151,6 +151,20 @@ a {
 	opacity: 0.85;
 }
 
+.ui-btn-danger {
+	background: #ef4444;
+	color: white;
+}
+
+.ui-btn-danger:hover {
+	background: #dc2626;
+}
+
+.ui-btn:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
 .ui-btn-control {
 	height: var(--control-height);
 	padding: 0 12px;
@@ -228,6 +242,13 @@ a {
 	font-size: 16px;
 	font-weight: 700;
 	color: var(--color-primary);
+}
+
+.ui-footer-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding: var(--spacing-md);
+	border-top: 1px solid var(--gray-200);
 }
 
 .ui-mode-btn {
@@ -708,6 +729,12 @@ a {
 .card-btn:active {
 	transform: translateY(2px) scale(0.98);
 	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+}
+
+.card-btn.active {
+	background: #2563eb;
+	border-color: #2563eb;
+	color: white;
 }
 
 /* ============================================
