@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { placesStore } from '$stores/places';
 	import { mapStore } from '$stores/map';
-	import { routesStore } from '$stores/routes';
 	import { collectionsStore } from '$stores/collections';
 	import { CATEGORY_LABELS } from '$utils/map-helpers';
 	import type { Category, Priority } from '$types';
@@ -10,25 +9,25 @@
 		open: boolean;
 		onClose: () => void;
 		coords?: [number, number] | null;
-		onCreateRoute?: () => void;
 	}
 
-	let { open, onClose, coords = null, onCreateRoute }: Props = $props();
+	let { open, onClose, coords = null }: Props = $props();
 
-	let name = $state('');
-	let description = $state('');
-	let route = $state('');
-	let category = $state<Category | ''>('');
-	let priority = $state<Priority>('site');
+let name = $state('');
+let description = $state('');
+let category = $state<Category | ''>('');
+let priority = $state<Priority>('site');
 	let saving = $state(false);
 	let error = $state('');
 	let location = $state<[number, number] | null>(coords);
-	let selectedCollections = $state<string[]>([]);
+let selectedCollections = $state<string[]>([]);
+let collectionsOpen = $state(false);
 
 	$effect(() => {
 		if (open) {
 			location = coords ?? $mapStore.center;
 			collectionsStore.fetchAll();
+			collectionsOpen = false;
 		}
 	});
 
@@ -37,12 +36,12 @@
 	function reset() {
 		name = '';
 		description = '';
-		route = '';
 		category = '';
 		priority = 'site';
 		error = '';
 		location = null;
 		selectedCollections = [];
+		collectionsOpen = false;
 	}
 
 	function handleClose() {
@@ -84,7 +83,7 @@
 			longitude: lng,
 			category: category as Category,
 			priority,
-			route: route || null,
+			route: null,
 			route_stop: null,
 			tags: [],
 			collection_ids: selectedCollections
@@ -97,15 +96,6 @@
 		} else {
 			error = 'Failed to save point. Please try again.';
 		}
-	}
-
-	function handleRouteChange(value: string) {
-		if (value === '__create__') {
-			route = '';
-			onCreateRoute?.();
-			return;
-		}
-		route = value;
 	}
 
 	function toggleCollection(id: string) {
@@ -125,7 +115,7 @@
 	<div class="backdrop" onclick={handleBackdropClick}>
 		<div class="modal">
 			<div class="header">
-				<h2>Add Point</h2>
+				<h2>Add Place</h2>
 				<button class="close-btn" onclick={handleClose} aria-label="Close">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
@@ -168,57 +158,63 @@
 				</div>
 
 				<div class="section">
-					<span class="section-title">Step 1 — Add to Collections</span>
-					{#if $collectionsStore.loading}
-						<p class="placeholder">Loading collections...</p>
-					{:else if $collectionsStore.collections.length === 0}
-						<p class="placeholder">No collections yet.</p>
-					{:else}
-						<div class="collection-list">
-							{#each $collectionsStore.collections as collection}
-								<label class="collection-item">
-									<input
-										type="checkbox"
-										checked={selectedCollections.includes(collection.id)}
-										onchange={() => toggleCollection(collection.id)}
-									/>
-									<span class="collection-label">{collection.name}</span>
-								</label>
-							{/each}
-						</div>
+					<div class="collection-toggle" class:open={collectionsOpen} onclick={() => collectionsOpen = !collectionsOpen}>
+						<span class="section-title">Add to collection</span>
+						<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M6 9l6 6 6-6"/>
+						</svg>
+					</div>
+					{#if collectionsOpen}
+						{#if $collectionsStore.loading}
+							<p class="placeholder">Loading collections...</p>
+						{:else if $collectionsStore.collections.length === 0}
+							<p class="placeholder">No collections yet.</p>
+						{:else}
+							<div class="collection-list">
+								{#each $collectionsStore.collections as collection}
+									<label class="collection-item">
+										<input
+											type="checkbox"
+											checked={selectedCollections.includes(collection.id)}
+											onchange={() => toggleCollection(collection.id)}
+										/>
+										<span class="collection-label">{collection.name}</span>
+									</label>
+								{/each}
+							</div>
+						{/if}
 					{/if}
 				</div>
 
-				<div class="section">
-					<span class="section-title">Step 2 — Add to Route</span>
-					<div class="field">
-						<label for="point-route">Route</label>
-						<select
-							id="point-route"
-							bind:value={route}
-							onchange={(e) => handleRouteChange((e.currentTarget as HTMLSelectElement).value)}
-						>
-							<option value="">None</option>
-							{#each Object.keys($routesStore) as r}
-								<option value={r}>{r}</option>
-							{/each}
-							<option value="__create__">+ Create new route...</option>
-						</select>
+				<div class="section viewable">
+					<div class="section-title">Viewable by</div>
+					<div class="viewable-options">
+						<label class="viewable-option">
+							<input type="checkbox" disabled />
+							<span>Only me</span>
+						</label>
+						<label class="viewable-option">
+							<input type="checkbox" disabled />
+							<span>Friends</span>
+						</label>
+						<label class="viewable-option">
+							<input type="checkbox" disabled />
+							<span>Friends of friends</span>
+						</label>
+						<label class="viewable-option">
+							<input type="checkbox" disabled />
+							<span>Anyone</span>
+						</label>
 					</div>
 				</div>
-
-				<p class="coord-info">
-					Point will be placed at {location ? `${location[0].toFixed(6)}, ${location[1].toFixed(6)}` : 'the current map centre'}.
-				</p>
-
-				{#if error}
+{#if error}
 					<p class="error">{error}</p>
 				{/if}
 
 				<div class="actions">
 					<button type="button" class="btn-cancel" onclick={handleClose}>Cancel</button>
 					<button type="submit" class="btn-save" disabled={saving}>
-						{saving ? 'Saving...' : 'Add Point'}
+						{saving ? 'Saving...' : 'Add Place'}
 					</button>
 				</div>
 			</form>
@@ -345,11 +341,11 @@
 	}
 
 	.section-title {
-		font-size: 12px;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #6b7280;
+		font-size: 13px;
+		font-weight: 600;
+		color: #374151;
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.placeholder {
@@ -365,6 +361,31 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
+	}
+
+	.collection-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 12px;
+		border: 1px solid #d1d5db;
+		border-radius: var(--radius-md);
+		background: white;
+		color: var(--color-primary);
+		cursor: pointer;
+	}
+
+	.collection-toggle .section-title {
+		color: inherit;
+		margin: 0;
+	}
+
+	.collection-toggle .chevron {
+		transition: transform 0.2s ease;
+	}
+
+	.collection-toggle.open .chevron {
+		transform: rotate(180deg);
 	}
 
 	.collection-item {
@@ -383,12 +404,31 @@
 		font-weight: 500;
 	}
 
-	.coord-info {
-		font-size: 13px;
-		color: #6b7280;
+	.viewable {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+
+	.viewable-options {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 12px;
+		padding: 10px 12px;
+		border: 1px solid #d1d5db;
+		border-radius: var(--radius-md);
 		background: #f9fafb;
-		padding: var(--spacing-sm) var(--spacing-md);
-		border-radius: var(--radius-sm);
+	}
+
+	.viewable-option {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 14px;
+		color: #6b7280;
+	}
+
+	.viewable-option input {
+		accent-color: #9ca3af;
 	}
 
 	.error {
@@ -438,3 +478,5 @@
 		cursor: not-allowed;
 	}
 </style>
+
+

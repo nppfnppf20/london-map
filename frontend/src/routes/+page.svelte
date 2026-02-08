@@ -31,6 +31,7 @@
 	let routeSearchModalOpen = $state(false);
 	let addMenuOpen = $state(false);
 	let exploreModalOpen = $state(false);
+	let plusMenuOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | null>(null);
@@ -125,6 +126,27 @@
 			{ enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
 		);
 	}
+
+	function startAddAtCurrentLocation() {
+		plusMenuOpen = false;
+		if (!navigator.geolocation) {
+			startPinMode('add');
+			return;
+		}
+
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
+				pinCoords = coords;
+				mapStore.flyTo(coords, 15);
+				addModalOpen = true;
+			},
+			() => {
+				startPinMode('add');
+			},
+			{ enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+		);
+	}
 </script>
 
 <svelte:head>
@@ -156,12 +178,36 @@
 			</button>
 		{/if}
 
-		<button class="map-plus-btn ui-fab" type="button" aria-label="Add">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 5v14" />
-				<path d="M5 12h14" />
-			</svg>
-		</button>
+		<div class="plus-menu-wrap">
+			<button
+				class="map-plus-btn ui-fab"
+				type="button"
+				aria-label="Add"
+				aria-expanded={plusMenuOpen}
+				onclick={() => { plusMenuOpen = !plusMenuOpen; }}
+			>
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 5v14" />
+					<path d="M5 12h14" />
+				</svg>
+			</button>
+			{#if plusMenuOpen}
+				<div class="plus-menu">
+					<button class="plus-menu-item ui-btn ui-btn-secondary" onclick={startAddAtCurrentLocation}>
+						Add site at current location
+					</button>
+					<button
+						class="plus-menu-item ui-btn ui-btn-secondary"
+						onclick={() => {
+							plusMenuOpen = false;
+							startPinMode('add');
+						}}
+					>
+						Select location
+					</button>
+				</div>
+			{/if}
+		</div>
 	</section>
 
 	<section class="menu-pane">
@@ -650,9 +696,6 @@
 	}
 
 	.map-plus-btn {
-		position: absolute;
-		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
-		bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
 		z-index: var(--z-fab);
 		border: 0;
 		background: #ef4444;
@@ -667,6 +710,33 @@
 	.map-plus-btn:focus-visible {
 		outline: 3px solid rgba(99, 102, 241, 0.6);
 		outline-offset: 2px;
+	}
+
+	.plus-menu-wrap {
+		position: absolute;
+		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+		bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+		z-index: var(--z-fab);
+	}
+
+	.plus-menu {
+		position: absolute;
+		right: 0;
+		bottom: calc(100% + 10px);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 220px;
+		background: white;
+		border-radius: var(--radius-md);
+		padding: var(--spacing-sm);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.plus-menu-item {
+		width: 100%;
+		text-align: left;
+		font-size: 13px;
 	}
 
 	.directions-banner {
