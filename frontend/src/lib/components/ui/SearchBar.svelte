@@ -124,9 +124,9 @@
 		position: absolute;
 		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
 		left: var(--spacing-md);
-		right: calc(var(--spacing-md) + 100px); /* Leave room for Layers button */
+		right: calc(var(--spacing-md) + 140px); /* Leave room for Toggle map */
 		z-index: 1100;
-		max-width: 400px;
+		max-width: 520px;
 	}
 
 	@media (min-width: 500px) {
@@ -142,6 +142,7 @@
 		background: white;
 		border-radius: var(--radius-lg);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		height: 44px;
 	}
 
 	.search-icon {
@@ -153,10 +154,11 @@
 
 	.search-input {
 		width: 100%;
-		padding: 12px 40px 12px 40px;
+		padding: 0 40px 0 40px;
+		height: 44px;
 		border: none;
 		border-radius: var(--radius-lg);
-		font-size: 15px;
+		font-size: 13px;
 		color: var(--color-primary);
 		background: transparent;
 	}

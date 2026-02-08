@@ -28,13 +28,13 @@
 </script>
 
 <div class="layer-toggle">
-	<button class="toggle-btn" onclick={toggleExpand} aria-label="Toggle layer controls">
+	<button class="toggle-btn" onclick={toggleExpand} aria-label="Toggle map">
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="M12 2L2 7l10 5 10-5-10-5z"/>
 			<path d="M2 17l10 5 10-5"/>
 			<path d="M2 12l10 5 10-5"/>
 		</svg>
-		<span>Layers</span>
+		<span>Toggle map</span>
 	</button>
 </div>
 
@@ -141,7 +141,8 @@
 	}
 
 	.toggle-btn {
-		padding: 8px 12px;
+		height: 44px;
+		padding: 0 12px;
 		border-radius: var(--radius-md);
 		background: white;
 		color: var(--color-primary);
@@ -152,7 +153,7 @@
 		box-shadow: var(--shadow-md);
 		transition: transform 0.15s ease-out;
 		-webkit-tap-highlight-color: transparent;
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 700;
 	}
 

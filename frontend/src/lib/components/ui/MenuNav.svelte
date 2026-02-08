@@ -34,7 +34,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		padding: 6px;
+		padding: 4px;
 		border-radius: 999px;
 		background: #f3f4f6;
 		box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
@@ -43,9 +43,9 @@
 	.menu-nav-item {
 		border: 0;
 		background: transparent;
-		padding: 8px 18px;
+		padding: 6px 14px;
 		border-radius: 999px;
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 600;
 		color: #6b7280;
 		letter-spacing: 0.01em;

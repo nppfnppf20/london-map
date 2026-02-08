@@ -20,7 +20,6 @@
 	import { routeSearchStore } from '$stores/routeSearch';
 	import { nearbyStore } from '$stores/nearby';
 	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
-	import { authStore } from '$stores/auth';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 
 	let authModalOpen = $state(false);
@@ -35,6 +34,19 @@
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | null>(null);
 	let menuTab = $state<'Places' | 'Lists' | 'Tours'>('Lists');
+let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
+	new Set(['Public'])
+);
+
+function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
+	const next = new Set(filterScopes);
+	if (next.has(scope)) {
+			next.delete(scope);
+		} else {
+			next.add(scope);
+		}
+		filterScopes = next;
+	}
 
 	const LONDON_CENTER: [number, number] = [51.5074, -0.1278];
 	const PLACE_ITEMS = [
@@ -106,31 +118,6 @@
 			<SearchBar />
 		{/if}
 
-		{#if !pinMode && !$routeSearchStore.drawing}
-			<button
-				class="auth-btn"
-				onclick={() => {
-					if ($authStore.user) {
-						authStore.signOut();
-					} else {
-						authModalOpen = true;
-					}
-				}}
-				aria-label={$authStore.user ? 'Sign out' : 'Sign in'}
-			>
-				{#if $authStore.user}
-					<span class="auth-avatar">
-						{$authStore.user.email.charAt(0).toUpperCase()}
-					</span>
-				{:else}
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-						<circle cx="12" cy="7" r="4"/>
-					</svg>
-				{/if}
-			</button>
-		{/if}
-
 		{#if $routeSearchStore.drawing}
 			<button
 				class="draw-fab"
@@ -159,6 +146,41 @@
 		<div class="menu-surface">
 			<div class="menu-grip" aria-hidden="true"></div>
 			<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
+			<div class="menu-divider" aria-hidden="true"></div>
+			<div class="filter-row" aria-label="Filter scope">
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={filterScopes.has('Friends')}
+					onclick={() => { toggleScope('Friends'); }}
+				>
+					Friends
+				</button>
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={filterScopes.has('Friends of Friends')}
+					onclick={() => { toggleScope('Friends of Friends'); }}
+				>
+					Friends of Friends
+				</button>
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={filterScopes.has('Public')}
+					onclick={() => { toggleScope('Public'); }}
+				>
+					Public
+				</button>
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={filterScopes.has('Private')}
+					onclick={() => { toggleScope('Private'); }}
+				>
+					Private
+				</button>
+			</div>
 			<div class="menu-list">
 				{#if menuTab === 'Places'}
 					{#each PLACE_ITEMS as place}
@@ -265,14 +287,15 @@
 						</div>
 					{/if}
 					<button
-						class="bar-btn primary ui-btn"
+						class="bar-btn ui-btn ui-btn-secondary"
 						onclick={() => {
+							addMenuOpen = false;
 							exploreMenuOpen = false;
-							addMenuOpen = !addMenuOpen;
+							authModalOpen = true;
 						}}
-						aria-label="Add"
+						aria-label="Login"
 					>
-						Add
+						Login
 					</button>
 				</div>
 			</div>
@@ -423,7 +446,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
-		padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+		padding: var(--spacing-md);
 		background: white;
 		border-top-left-radius: 24px;
 		border-top-right-radius: 24px;
@@ -431,9 +454,53 @@
 	}
 
 	.menu-surface {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
+		min-height: 0;
+	}
+
+	.menu-divider {
+		height: 1.5px;
+		background: #e5e7eb;
+		width: 100%;
+	}
+
+	.filter-row {
+		display: flex;
+		flex-wrap: nowrap;
+		gap: 8px;
+		overflow-x: auto;
+		padding-bottom: 2px;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.filter-row::-webkit-scrollbar {
+		display: none;
+	}
+
+	.filter-chip {
+		display: inline-flex;
+		align-items: center;
+		padding: 7px 12px;
+		border-radius: 999px;
+		border: 1px solid #e2e8f0;
+		background: #f8fafc;
+		color: #0f172a;
+		font-size: 12px;
+		font-weight: 600;
+		white-space: nowrap;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.filter-chip:hover {
+		background: #f1f5f9;
+	}
+
+	.filter-chip.active {
+		background: #111827;
+		color: white;
 	}
 
 	.menu-grip {
@@ -448,6 +515,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
+		overflow-y: auto;
+		padding-bottom: var(--spacing-md);
+		min-height: 0;
 	}
 
 	.menu-item-placeholder {
@@ -512,8 +582,14 @@
 
 
 	.bottom-bar {
+		margin-top: auto;
 		display: flex;
 		gap: var(--spacing-sm);
+		padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+	}
+
+	.bottom-bar > .bar-btn {
+		flex: 1;
 	}
 
 	.menu-stack {
@@ -671,8 +747,8 @@
 		height: 44px;
 		border: 0;
 		border-radius: 12px;
-		background: white;
-		color: #111827;
+		background: #ef4444;
+		color: white;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -684,7 +760,7 @@
 	.map-plus-btn:hover {
 		transform: translateY(-3px);
 		box-shadow: 0 12px 18px rgba(0, 0, 0, 0.2), 0 5px 8px rgba(0, 0, 0, 0.14);
-		background: #f8fafc;
+		background: #dc2626;
 	}
 
 	.map-plus-btn:active {
@@ -749,37 +825,4 @@
 		background: #e5e7eb;
 	}
 
-	.auth-btn {
-		position: fixed;
-		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
-		left: calc(env(safe-area-inset-left, 0px) + var(--spacing-md));
-		z-index: 1100;
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		background: white;
-		color: #374151;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.auth-btn:active {
-		transform: scale(0.95);
-	}
-
-	.auth-avatar {
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		background: var(--color-highlight);
-		color: white;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 13px;
-		font-weight: 700;
-	}
 </style>
