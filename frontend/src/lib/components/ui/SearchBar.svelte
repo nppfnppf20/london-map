@@ -142,7 +142,7 @@
 		background: white;
 		border-radius: var(--radius-lg);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		height: 44px;
+		height: var(--control-height);
 	}
 
 	.search-icon {
@@ -155,7 +155,7 @@
 	.search-input {
 		width: 100%;
 		padding: 0 40px 0 40px;
-		height: 44px;
+		height: var(--control-height);
 		border: none;
 		border-radius: var(--radius-lg);
 		font-size: 13px;

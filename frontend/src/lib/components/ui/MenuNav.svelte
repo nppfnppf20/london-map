@@ -13,7 +13,7 @@
 		{#each items as item}
 			<button
 				type="button"
-				class="menu-nav-item"
+				class="menu-nav-item ui-btn ui-btn-sm ui-btn-pill"
 				class:active={item === value}
 				aria-pressed={item === value}
 				onclick={() => onSelect(item)}
@@ -41,12 +41,7 @@
 	}
 
 	.menu-nav-item {
-		border: 0;
 		background: transparent;
-		padding: 6px 14px;
-		border-radius: 999px;
-		font-size: 12px;
-		font-weight: 600;
 		color: #6b7280;
 		letter-spacing: 0.01em;
 		-webkit-tap-highlight-color: transparent;

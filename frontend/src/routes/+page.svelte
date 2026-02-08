@@ -34,13 +34,13 @@
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | null>(null);
 	let menuTab = $state<'Places' | 'Lists' | 'Tours'>('Lists');
-let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
-	new Set(['Public'])
-);
+	let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
+		new Set(['Public'])
+	);
 
-function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
-	const next = new Set(filterScopes);
-	if (next.has(scope)) {
+	function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
+		const next = new Set(filterScopes);
+		if (next.has(scope)) {
 			next.delete(scope);
 		} else {
 			next.add(scope);
@@ -118,14 +118,14 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 			<SearchBar />
 		{/if}
 
-		{#if $routeSearchStore.drawing}
-			<button
-				class="draw-fab"
-				class:active={$routeSearchStore.painting}
-				aria-label="Draw route"
-				onclick={() => {
-					routeSearchStore.togglePainting();
-				}}
+			{#if $routeSearchStore.drawing}
+				<button
+					class="draw-fab ui-fab"
+					class:active={$routeSearchStore.painting}
+					aria-label="Draw route"
+					onclick={() => {
+						routeSearchStore.togglePainting();
+					}}
 			>
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M12 20h9"/>
@@ -134,7 +134,7 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 			</button>
 		{/if}
 
-		<button class="map-plus-btn" type="button" aria-label="Add">
+		<button class="map-plus-btn ui-fab" type="button" aria-label="Add">
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M12 5v14" />
 				<path d="M5 12h14" />
@@ -146,11 +146,11 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 		<div class="menu-surface">
 			<div class="menu-grip" aria-hidden="true"></div>
 			<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
-			<div class="menu-divider" aria-hidden="true"></div>
-			<div class="filter-row" aria-label="Filter scope">
+			<div class="menu-divider ui-divider" aria-hidden="true"></div>
+			<div class="filter-row ui-chip-row" aria-label="Filter scope">
 				<button
 					type="button"
-					class="filter-chip"
+					class="filter-chip ui-chip"
 					class:active={filterScopes.has('Friends')}
 					onclick={() => { toggleScope('Friends'); }}
 				>
@@ -158,7 +158,7 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 				</button>
 				<button
 					type="button"
-					class="filter-chip"
+					class="filter-chip ui-chip"
 					class:active={filterScopes.has('Friends of Friends')}
 					onclick={() => { toggleScope('Friends of Friends'); }}
 				>
@@ -166,7 +166,7 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 				</button>
 				<button
 					type="button"
-					class="filter-chip"
+					class="filter-chip ui-chip"
 					class:active={filterScopes.has('Public')}
 					onclick={() => { toggleScope('Public'); }}
 				>
@@ -174,48 +174,48 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 				</button>
 				<button
 					type="button"
-					class="filter-chip"
+					class="filter-chip ui-chip"
 					class:active={filterScopes.has('Private')}
 					onclick={() => { toggleScope('Private'); }}
 				>
 					Private
 				</button>
 			</div>
-			<div class="menu-list">
+			<div class="menu-list ui-list">
 				{#if menuTab === 'Places'}
 					{#each PLACE_ITEMS as place}
-						<div class="menu-item-card">
+						<div class="menu-item-card ui-card">
 							<div class="menu-item-main">
 								<p class="menu-item-name">
-									<span class="menu-item-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
+									<span class="menu-item-dot ui-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
 									{place.name}
 								</p>
-								<p class="menu-item-meta">
+								<p class="menu-item-meta ui-meta">
 									<span>{CATEGORY_LABELS[place.category]}</span>
 									<span>&middot;</span>
 									<span>{formatDistance(distanceMeters(LONDON_CENTER, [place.lat, place.lng]))}</span>
 								</p>
 							</div>
-							<p class="menu-item-contrib">By {place.contributor}</p>
+							<p class="menu-item-contrib ui-meta ui-muted">By {place.contributor}</p>
 						</div>
 					{/each}
 				{:else if menuTab === 'Lists'}
-					<div class="menu-item-card">
+					<div class="menu-item-card ui-card">
 						<div class="menu-item-main">
 							<p class="menu-item-name">John Voyage Pubs</p>
-							<p class="menu-item-meta">By Sam Baker</p>
+							<p class="menu-item-meta ui-meta">By Sam Baker</p>
 						</div>
 					</div>
-					<div class="menu-item-card">
+					<div class="menu-item-card ui-card">
 						<div class="menu-item-main">
 							<p class="menu-item-name">The Shamans Pubs</p>
-							<p class="menu-item-meta">By Jack Shearman</p>
+							<p class="menu-item-meta ui-meta">By Jack Shearman</p>
 						</div>
 					</div>
-					<div class="menu-item-card">
+					<div class="menu-item-card ui-card">
 						<div class="menu-item-main">
 							<p class="menu-item-name">Restaurants</p>
-							<p class="menu-item-meta">By Stan</p>
+							<p class="menu-item-meta ui-meta">By Stan</p>
 						</div>
 					</div>
 				{:else}
@@ -309,8 +309,8 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 				<p class="pin-title">Place the pin</p>
 				<p class="pin-help">Drag the map to position the pin, or tap to jump.</p>
 				<div class="pin-actions">
-					<button class="pin-btn secondary" onclick={cancelPinMode}>Cancel</button>
-					<button class="pin-btn primary" onclick={confirmPinMode}>Use this spot</button>
+					<button class="pin-btn ui-btn ui-btn-secondary" onclick={cancelPinMode}>Cancel</button>
+					<button class="pin-btn ui-btn ui-btn-primary" onclick={confirmPinMode}>Use this spot</button>
 				</div>
 			</div>
 		</div>
@@ -323,7 +323,7 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 				<p class="pin-help">Press and drag to sketch the route. Lift to finish.</p>
 				<div class="pin-actions">
 					<button
-						class="pin-btn secondary"
+						class="pin-btn ui-btn ui-btn-secondary"
 						onclick={() => {
 							routeSearchStore.clear();
 						}}
@@ -331,7 +331,7 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 						Cancel
 					</button>
 					<button
-						class="pin-btn primary"
+						class="pin-btn ui-btn ui-btn-primary"
 						onclick={() => {
 							routeSearchStore.finishDrawing();
 							routeSearchModalOpen = true;
@@ -461,48 +461,6 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 		min-height: 0;
 	}
 
-	.menu-divider {
-		height: 1.5px;
-		background: #e5e7eb;
-		width: 100%;
-	}
-
-	.filter-row {
-		display: flex;
-		flex-wrap: nowrap;
-		gap: 8px;
-		overflow-x: auto;
-		padding-bottom: 2px;
-		-webkit-overflow-scrolling: touch;
-	}
-
-	.filter-row::-webkit-scrollbar {
-		display: none;
-	}
-
-	.filter-chip {
-		display: inline-flex;
-		align-items: center;
-		padding: 7px 12px;
-		border-radius: 999px;
-		border: 1px solid #e2e8f0;
-		background: #f8fafc;
-		color: #0f172a;
-		font-size: 12px;
-		font-weight: 600;
-		white-space: nowrap;
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.filter-chip:hover {
-		background: #f1f5f9;
-	}
-
-	.filter-chip.active {
-		background: #111827;
-		color: white;
-	}
-
 	.menu-grip {
 		width: 54px;
 		height: 6px;
@@ -512,9 +470,6 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 	}
 
 	.menu-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-sm);
 		overflow-y: auto;
 		padding-bottom: var(--spacing-md);
 		min-height: 0;
@@ -524,17 +479,6 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 		height: 56px;
 		border-radius: 16px;
 		background: #f3f4f6;
-	}
-
-	.menu-item-card {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--spacing-sm);
-		padding: 12px 16px;
-		border-radius: 16px;
-		background: #f8fafc;
-		border: 1px solid #e2e8f0;
 	}
 
 	.menu-item-main {
@@ -557,27 +501,10 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 		text-overflow: ellipsis;
 	}
 
-	.menu-item-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-		flex-shrink: 0;
-	}
-
 	.menu-item-meta {
 		margin: 0;
 		display: inline-flex;
 		gap: 8px;
-		font-size: 12px;
-		color: #64748b;
-	}
-
-	.menu-item-contrib {
-		margin: 0;
-		font-size: 12px;
-		color: #94a3b8;
-		white-space: nowrap;
 	}
 
 
@@ -690,47 +617,17 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 
 	.pin-btn {
 		flex: 1;
-		padding: 10px 12px;
-		border-radius: var(--radius-md);
-		font-size: 14px;
-		font-weight: 600;
-		-webkit-tap-highlight-color: transparent;
 		pointer-events: auto;
-	}
-
-	.pin-btn.primary {
-		background: var(--color-highlight);
-		color: white;
-	}
-
-	.pin-btn.secondary {
-		background: #f3f4f6;
-		color: #374151;
-	}
-
-	.pin-btn:active {
-		opacity: 0.85;
 	}
 
 	.draw-fab {
 		position: absolute;
 		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
 		bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px) + 72px);
-		z-index: 1100;
-		width: 44px;
-		height: 44px;
-		border-radius: 50%;
+		z-index: var(--z-fab);
 		background: white;
 		color: var(--color-primary);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: var(--shadow-lg);
 		-webkit-tap-highlight-color: transparent;
-	}
-
-	.draw-fab:active {
-		transform: scale(0.96);
 	}
 
 	.draw-fab.active {
@@ -742,29 +639,15 @@ function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Priva
 		position: absolute;
 		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
 		bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
-		z-index: 1100;
-		width: 44px;
-		height: 44px;
+		z-index: var(--z-fab);
 		border: 0;
-		border-radius: 12px;
 		background: #ef4444;
 		color: white;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 6px 10px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
-		transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 		-webkit-tap-highlight-color: transparent;
 	}
 
 	.map-plus-btn:hover {
-		transform: translateY(-3px);
-		box-shadow: 0 12px 18px rgba(0, 0, 0, 0.2), 0 5px 8px rgba(0, 0, 0, 0.14);
 		background: #dc2626;
-	}
-
-	.map-plus-btn:active {
-		transform: translateY(0);
 	}
 
 	.map-plus-btn:focus-visible {

@@ -28,7 +28,7 @@
 </script>
 
 <div class="layer-toggle">
-	<button class="toggle-btn" onclick={toggleExpand} aria-label="Toggle map">
+	<button class="toggle-btn ui-btn ui-btn-secondary ui-btn-sm" onclick={toggleExpand} aria-label="Toggle map">
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="M12 2L2 7l10 5 10-5-10-5z"/>
 			<path d="M2 17l10 5 10-5"/>
@@ -47,7 +47,7 @@
 		<div class="layer-panel" onclick={(e) => e.stopPropagation()}>
 			<div class="panel-header">
 				<span class="panel-title">Layers</span>
-				<button class="panel-close" onclick={toggleExpand} aria-label="Close">
+				<button class="panel-close close-btn" onclick={toggleExpand} aria-label="Close">
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
 					</svg>
@@ -141,11 +141,9 @@
 	}
 
 	.toggle-btn {
-		height: 44px;
+		height: var(--control-height);
 		padding: 0 12px;
 		border-radius: var(--radius-md);
-		background: white;
-		color: var(--color-primary);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -153,8 +151,6 @@
 		box-shadow: var(--shadow-md);
 		transition: transform 0.15s ease-out;
 		-webkit-tap-highlight-color: transparent;
-		font-size: 12px;
-		font-weight: 700;
 	}
 
 	.toggle-btn:active {
@@ -198,19 +194,8 @@
 	}
 
 	.panel-close {
-		width: 36px;
-		height: 36px;
-		border-radius: 50%;
-		background: #f3f4f6;
-		color: #374151;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.panel-close:active {
-		background: #e5e7eb;
+		width: 40px;
+		height: 40px;
 	}
 
 	.layer-list {
