@@ -13,6 +13,7 @@
 	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
 	import SearchBar from '$components/ui/SearchBar.svelte';
 	import AuthModal from '$components/ui/AuthModal.svelte';
+	import MenuNav from '$components/ui/MenuNav.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -20,6 +21,7 @@
 	import { nearbyStore } from '$stores/nearby';
 	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
 	import { authStore } from '$stores/auth';
+	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 
 	let authModalOpen = $state(false);
 	let addModalOpen = $state(false);
@@ -32,6 +34,34 @@
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | null>(null);
+	let menuTab = $state<'Places' | 'Lists' | 'Tours'>('Lists');
+
+	const LONDON_CENTER: [number, number] = [51.5074, -0.1278];
+	const PLACE_ITEMS = [
+		{ name: 'St Pauls Cathedral', category: 'history', lat: 51.5138, lng: -0.0984, contributor: 'Jamie' },
+		{ name: 'Borough Market', category: 'food', lat: 51.5055, lng: -0.0910, contributor: 'Nora' },
+		{ name: 'Somerset House', category: 'architecture', lat: 51.5116, lng: -0.1177, contributor: 'Alex' },
+		{ name: 'The Lamb & Flag', category: 'pub', lat: 51.5144, lng: -0.1256, contributor: 'Priya' }
+	] as const;
+
+	function toRadians(value: number): number {
+		return (value * Math.PI) / 180;
+	}
+
+	function distanceMeters(from: [number, number], to: [number, number]): number {
+		const [lat1, lon1] = from;
+		const [lat2, lon2] = to;
+		const r = 6371000;
+		const dLat = toRadians(lat2 - lat1);
+		const dLon = toRadians(lon2 - lon1);
+		const a =
+			Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+			Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+				Math.sin(dLon / 2) * Math.sin(dLon / 2);
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		return r * c;
+	}
+
 
 	function startPinMode(action: 'add' | 'nearby') {
 		selectedPlace.clear();
@@ -68,127 +98,166 @@
 </svelte:head>
 
 <main class="map-page">
-	<LeafletMap pinMode={pinMode} />
-	<LayerControl />
-	<RouteBanner />
-	{#if !pinMode && !$routeSearchStore.drawing}
-		<SearchBar />
-	{/if}
+	<section class="map-pane">
+		<LeafletMap pinMode={pinMode} />
+		<LayerControl />
+		<RouteBanner />
+		{#if !pinMode && !$routeSearchStore.drawing}
+			<SearchBar />
+		{/if}
 
-	{#if !pinMode && !$routeSearchStore.drawing}
-		<button
-			class="auth-btn"
-			onclick={() => {
-				if ($authStore.user) {
-					authStore.signOut();
-				} else {
-					authModalOpen = true;
-				}
-			}}
-			aria-label={$authStore.user ? 'Sign out' : 'Sign in'}
-		>
-			{#if $authStore.user}
-				<span class="auth-avatar">
-					{$authStore.user.email.charAt(0).toUpperCase()}
-				</span>
-			{:else}
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-					<circle cx="12" cy="7" r="4"/>
+		{#if !pinMode && !$routeSearchStore.drawing}
+			<button
+				class="auth-btn"
+				onclick={() => {
+					if ($authStore.user) {
+						authStore.signOut();
+					} else {
+						authModalOpen = true;
+					}
+				}}
+				aria-label={$authStore.user ? 'Sign out' : 'Sign in'}
+			>
+				{#if $authStore.user}
+					<span class="auth-avatar">
+						{$authStore.user.email.charAt(0).toUpperCase()}
+					</span>
+				{:else}
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+						<circle cx="12" cy="7" r="4"/>
+					</svg>
+				{/if}
+			</button>
+		{/if}
+
+		{#if $routeSearchStore.drawing}
+			<button
+				class="draw-fab"
+				class:active={$routeSearchStore.painting}
+				aria-label="Draw route"
+				onclick={() => {
+					routeSearchStore.togglePainting();
+				}}
+			>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 20h9"/>
+					<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
 				</svg>
-			{/if}
-		</button>
-	{/if}
+			</button>
+		{/if}
 
-	{#if $routeSearchStore.drawing}
-		<button
-			class="draw-fab"
-			class:active={$routeSearchStore.painting}
-			aria-label="Draw route"
-			onclick={() => {
-				routeSearchStore.togglePainting();
-			}}
-		>
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 20h9"/>
-				<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
-			</svg>
-		</button>
-	{/if}
+		<div class="map-legend" aria-label="Map legend">
+			{#each Object.keys(CATEGORY_LABELS) as key}
+				<div class="map-legend-item">
+					<span class="map-legend-dot" style={`background:${CATEGORY_COLORS[key]}`}></span>
+					<span class="map-legend-label">{CATEGORY_LABELS[key]}</span>
+				</div>
+			{/each}
+		</div>
+	</section>
 
-	{#if !$routeBuilder.active}
-		<div class="bottom-bar">
-			<div class="menu-stack">
-				{#if exploreMenuOpen}
-					<div class="action-menu">
-						<button
-							class="menu-item ui-btn ui-btn-secondary"
-							onclick={() => {
-								closeMenus();
-								startPinMode('nearby');
-							}}
-						>
-							Find near me
-						</button>
-						<button
-							class="menu-item ui-btn ui-btn-secondary"
-							onclick={() => {
-								closeMenus();
-								nearbyStore.clear();
-								routeSearchStore.startDrawing();
-							}}
-						>
-							Find along route
-						</button>
-					</div>
+	<section class="menu-pane">
+		<div class="menu-surface">
+			<div class="menu-grip" aria-hidden="true"></div>
+			<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
+			<div class="menu-list">
+				{#if menuTab === 'Places'}
+					{#each PLACE_ITEMS as place}
+						<div class="menu-item-card">
+							<div class="menu-item-main">
+								<p class="menu-item-name">{place.name}</p>
+								<p class="menu-item-meta">
+									<span>{CATEGORY_LABELS[place.category]}</span>
+									<span>&middot;</span>
+									<span>{formatDistance(distanceMeters(LONDON_CENTER, [place.lat, place.lng]))}</span>
+								</p>
+							</div>
+							<p class="menu-item-contrib">By {place.contributor}</p>
+						</div>
+					{/each}
+				{:else}
+					<div class="menu-item-placeholder"></div>
+					<div class="menu-item-placeholder"></div>
+					<div class="menu-item-placeholder"></div>
 				{/if}
-				<button
-					class="bar-btn ui-btn ui-btn-secondary"
-					onclick={() => {
-						addMenuOpen = false;
-						exploreMenuOpen = !exploreMenuOpen;
-					}}
-					aria-label="Explore"
-				>
-					Explore
-				</button>
-			</div>
-			<div class="menu-stack">
-				{#if addMenuOpen}
-					<div class="action-menu">
-						<button
-							class="menu-item ui-btn ui-btn-secondary"
-							onclick={() => {
-								closeMenus();
-								startPinMode('add');
-							}}
-						>
-							Add site
-						</button>
-						<button
-							class="menu-item ui-btn ui-btn-secondary"
-							onclick={() => {
-								closeMenus();
-								routeModalOpen = true;
-							}}
-						>
-							Create route
-						</button>
-					</div>
-				{/if}
-				<button
-					class="bar-btn primary ui-btn"
-					onclick={() => {
-						exploreMenuOpen = false;
-						addMenuOpen = !addMenuOpen;
-					}}
-					aria-label="Add"
-				>
-					Add
-				</button>
 			</div>
 		</div>
-	{/if}
+
+		{#if !$routeBuilder.active}
+			<div class="bottom-bar">
+				<div class="menu-stack">
+					{#if exploreMenuOpen}
+						<div class="action-menu">
+							<button
+								class="menu-item ui-btn ui-btn-secondary"
+								onclick={() => {
+									closeMenus();
+									startPinMode('nearby');
+								}}
+							>
+								Find near me
+							</button>
+							<button
+								class="menu-item ui-btn ui-btn-secondary"
+								onclick={() => {
+									closeMenus();
+									nearbyStore.clear();
+									routeSearchStore.startDrawing();
+								}}
+							>
+								Find along route
+							</button>
+						</div>
+					{/if}
+					<button
+						class="bar-btn ui-btn ui-btn-secondary"
+						onclick={() => {
+							addMenuOpen = false;
+							exploreMenuOpen = !exploreMenuOpen;
+						}}
+						aria-label="Explore"
+					>
+						Explore
+					</button>
+				</div>
+				<div class="menu-stack">
+					{#if addMenuOpen}
+						<div class="action-menu">
+							<button
+								class="menu-item ui-btn ui-btn-secondary"
+								onclick={() => {
+									closeMenus();
+									startPinMode('add');
+								}}
+							>
+								Add site
+							</button>
+							<button
+								class="menu-item ui-btn ui-btn-secondary"
+								onclick={() => {
+									closeMenus();
+									routeModalOpen = true;
+								}}
+							>
+								Create route
+							</button>
+						</div>
+					{/if}
+					<button
+						class="bar-btn primary ui-btn"
+						onclick={() => {
+							exploreMenuOpen = false;
+							addMenuOpen = !addMenuOpen;
+						}}
+						aria-label="Add"
+					>
+						Add
+					</button>
+				</div>
+			</div>
+		{/if}
+	</section>
 
 	{#if pinMode}
 		<div class="pin-overlay">
@@ -315,20 +384,135 @@
 		height: 100dvh;
 		min-height: 100dvh;
 		--bottom-bar-height: 64px;
+		display: flex;
+		flex-direction: column;
+		background: #f3f4f6;
 	}
 
-	.bottom-bar {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
+	.map-pane {
+		position: relative;
+		flex: 0 0 50dvh;
+		min-height: 50dvh;
+		overflow: hidden;
+	}
+
+	.menu-pane {
+		position: relative;
+		flex: 0 0 50dvh;
+		min-height: 50dvh;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+		padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+		background: white;
+		border-top-left-radius: 24px;
+		border-top-right-radius: 24px;
+		box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+	}
+
+	.menu-surface {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+	}
+
+	.menu-grip {
+		width: 54px;
+		height: 6px;
+		border-radius: 999px;
+		background: #e5e7eb;
+		align-self: center;
+	}
+
+	.menu-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.menu-item-placeholder {
+		height: 56px;
+		border-radius: 16px;
+		background: #f3f4f6;
+	}
+
+	.menu-item-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--spacing-sm);
+		padding: 12px 16px;
+		border-radius: 16px;
+		background: #f8fafc;
+		border: 1px solid #e2e8f0;
+	}
+
+	.menu-item-main {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.menu-item-name {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 700;
+		color: #0f172a;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.menu-item-meta {
+		margin: 0;
+		display: inline-flex;
+		gap: 8px;
+		font-size: 12px;
+		color: #64748b;
+	}
+
+	.menu-item-contrib {
+		margin: 0;
+		font-size: 12px;
+		color: #94a3b8;
+		white-space: nowrap;
+	}
+
+	.map-legend {
+		position: absolute;
+		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
 		z-index: 1100;
+		background: rgba(255, 255, 255, 0.92);
+		backdrop-filter: blur(6px);
+		border-radius: 14px;
+		padding: 10px 12px;
+		box-shadow: 0 6px 16px rgba(15, 23, 42, 0.14);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.map-legend-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+		color: #475569;
+	}
+
+	.map-legend-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	}
+
+
+	.bottom-bar {
 		display: flex;
 		gap: var(--spacing-sm);
-		padding: var(--spacing-sm) var(--spacing-md) calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
-		background: white;
-		border-top: 1px solid #e5e7eb;
-		box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.08);
 	}
 
 	.menu-stack {

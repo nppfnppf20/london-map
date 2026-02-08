@@ -1,3 +1,6 @@
+/* ============================================
+   Design tokens
+   ============================================ */
 :root {
 	--color-primary: #1a1a2e;
 	--color-secondary: #16213e;
@@ -6,27 +9,57 @@
 	--color-text: #eaeaea;
 	--color-text-muted: #a0a0a0;
 
+	/* Gray palette */
+	--gray-50: #f9fafb;
+	--gray-100: #f3f4f6;
+	--gray-200: #e5e7eb;
+	--gray-300: #d1d5db;
+	--gray-400: #9ca3af;
+	--gray-500: #6b7280;
+	--gray-600: #374151;
+	--gray-700: #111827;
+
+	/* Layer colours */
 	--layer-history: #3b82f6;
 	--layer-architecture: #8b5cf6;
 	--layer-food: #f97316;
 	--layer-pub: #f59e0b;
 	--layer-tour: #22c55e;
 
+	/* Spacing */
 	--spacing-xs: 0.25rem;
 	--spacing-sm: 0.5rem;
 	--spacing-md: 1rem;
 	--spacing-lg: 1.5rem;
 	--spacing-xl: 2rem;
 
+	/* Border radius */
 	--radius-sm: 4px;
 	--radius-md: 8px;
 	--radius-lg: 16px;
 
+	/* Shadows */
 	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
 	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
 	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+	--shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+	--shadow-card: 0 10px 24px rgba(15, 23, 42, 0.14);
+
+	/* Z-index scale */
+	--z-controls: 1100;
+	--z-overlay: 1200;
+	--z-modal: 2000;
+
+	/* Colours: error / info */
+	--color-error: #dc2626;
+	--color-error-bg: #fef2f2;
+	--color-info: #0369a1;
+	--color-info-bg: #f0f9ff;
 }
 
+/* ============================================
+   Reset
+   ============================================ */
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -80,6 +113,9 @@ a {
 	text-decoration: none;
 }
 
+/* ============================================
+   Base button
+   ============================================ */
 .ui-btn {
 	padding: 12px 14px;
 	border-radius: var(--radius-md);
@@ -89,12 +125,12 @@ a {
 }
 
 .ui-btn-secondary {
-	background: #f3f4f6;
-	color: #374151;
+	background: var(--gray-100);
+	color: var(--gray-600);
 }
 
 .ui-btn-secondary:active {
-	background: #e5e7eb;
+	background: var(--gray-200);
 }
 
 .ui-btn-block {
@@ -103,4 +139,362 @@ a {
 	align-items: center;
 	justify-content: center;
 	text-align: center;
+}
+
+/* ============================================
+   Modal system
+   ============================================ */
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: var(--z-modal);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-md);
+}
+
+.modal-container {
+	background: white;
+	width: 100%;
+	max-height: 85vh;
+	border-radius: var(--radius-lg);
+	display: flex;
+	flex-direction: column;
+	color: var(--color-primary);
+	box-shadow: var(--shadow-modal);
+	overflow: hidden;
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--spacing-lg);
+	border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-header h2 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.modal-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--spacing-lg);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	-webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   Close button (circle with X)
+   ============================================ */
+.close-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--gray-100);
+	color: var(--gray-600);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	-webkit-tap-highlight-color: transparent;
+	flex-shrink: 0;
+}
+
+.close-btn:active {
+	background: var(--gray-200);
+}
+
+/* ============================================
+   Action button pair (cancel / primary)
+   ============================================ */
+.modal-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	padding-top: var(--spacing-sm);
+}
+
+.btn-cancel,
+.btn-primary {
+	flex: 1;
+	padding: 12px;
+	border-radius: var(--radius-md);
+	font-size: 15px;
+	font-weight: 600;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.btn-cancel {
+	background: var(--gray-100);
+	color: var(--gray-600);
+}
+
+.btn-cancel:active {
+	background: var(--gray-200);
+}
+
+.btn-primary {
+	background: var(--color-highlight);
+	color: white;
+}
+
+.btn-primary:active:not(:disabled) {
+	opacity: 0.85;
+}
+
+.btn-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ============================================
+   Ghost / pill button
+   ============================================ */
+.btn-ghost {
+	border-radius: 999px;
+	padding: 4px 10px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--color-primary);
+	background: var(--gray-100);
+	-webkit-tap-highlight-color: transparent;
+}
+
+.btn-ghost:active {
+	background: var(--gray-200);
+}
+
+/* ============================================
+   Form fields
+   ============================================ */
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.field label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--gray-600);
+}
+
+.field input,
+.field select,
+.field textarea {
+	padding: 10px 12px;
+	border: 1px solid var(--gray-300);
+	border-radius: var(--radius-md);
+	font-size: 15px;
+	font-family: inherit;
+	color: var(--color-primary);
+	background: white;
+	-webkit-appearance: none;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+	outline: none;
+	border-color: var(--color-highlight);
+	box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+
+.field textarea {
+	resize: vertical;
+	min-height: 60px;
+}
+
+/* ============================================
+   Section title (uppercase label)
+   ============================================ */
+.section-title {
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--gray-500);
+}
+
+/* ============================================
+   Error / info / placeholder messages
+   ============================================ */
+.error-msg {
+	font-size: 13px;
+	color: var(--color-error);
+	background: var(--color-error-bg);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-radius: var(--radius-sm);
+	margin: 0;
+}
+
+.placeholder-msg {
+	margin: 0;
+	font-size: 12px;
+	color: var(--gray-400);
+	background: var(--gray-50);
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--radius-sm);
+}
+
+.info-msg {
+	font-size: 13px;
+	color: var(--gray-500);
+	background: var(--gray-50);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-radius: var(--radius-sm);
+	margin: 0;
+}
+
+/* ============================================
+   Section container
+   ============================================ */
+.form-section {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* ============================================
+   Option / collection list items
+   ============================================ */
+.option-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.option-item {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: 8px 10px;
+	border-radius: var(--radius-sm);
+	background: var(--gray-50);
+	color: var(--color-primary);
+	font-size: 14px;
+	font-weight: 500;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.option-item input[type="checkbox"] {
+	accent-color: var(--color-highlight);
+}
+
+/* ============================================
+   Toggle checkbox label
+   ============================================ */
+.toggle-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--gray-600);
+}
+
+.toggle-label input {
+	accent-color: var(--color-highlight);
+}
+
+/* ============================================
+   Card buttons (choice grid)
+   ============================================ */
+.choice-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--spacing-sm);
+	grid-auto-rows: 1fr;
+}
+
+.card-btn {
+	border-radius: 18px;
+	background: linear-gradient(180deg, #ffffff, #f1f5f9);
+	color: #0f172a;
+	border: 1px solid #e2e8f0;
+	box-shadow: var(--shadow-card);
+	min-height: 120px;
+	padding: 18px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	font-size: 17px;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card-btn:active {
+	transform: translateY(2px) scale(0.98);
+	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+}
+
+/* ============================================
+   Range slider row
+   ============================================ */
+.range-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.range-row input[type="range"] {
+	flex: 1;
+	accent-color: var(--color-highlight);
+}
+
+.range-value {
+	min-width: 64px;
+	text-align: right;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--gray-600);
+}
+
+/* ============================================
+   Badges
+   ============================================ */
+.category-badge {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	color: white;
+	padding: 2px 8px;
+	border-radius: 4px;
+}
+
+.priority-badge {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	padding: 2px 8px;
+	border-radius: 4px;
+}
+
+.priority-badge.site {
+	background: var(--color-highlight);
+	color: white;
+}
+
+.priority-badge.route {
+	background: var(--gray-200);
+	color: var(--gray-500);
+}
+
+/* ============================================
+   Tags
+   ============================================ */
+.tag {
+	font-size: 12px;
+	background: var(--gray-100);
+	color: var(--gray-500);
+	padding: 4px 10px;
+	border-radius: 12px;
 }
