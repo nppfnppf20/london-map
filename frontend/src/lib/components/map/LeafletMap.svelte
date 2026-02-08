@@ -382,10 +382,6 @@
 			maxZoom: 19
 		}).addTo(map);
 
-		leaflet.control.zoom({
-			position: 'bottomright'
-		}).addTo(map);
-
 		map.on('moveend', () => {
 			if (map) {
 				const center = map.getCenter();
@@ -589,20 +585,6 @@
 		width: 100%;
 		height: 100%;
 		touch-action: none;
-	}
-
-	:global(.leaflet-control-zoom) {
-		border: none !important;
-		box-shadow: var(--shadow-md) !important;
-		margin-bottom: calc(var(--bottom-bar-height, 0px) + env(safe-area-inset-bottom, 0px) + var(--spacing-md)) !important;
-		margin-right: var(--spacing-md) !important;
-	}
-
-	:global(.leaflet-control-zoom a) {
-		width: 44px !important;
-		height: 44px !important;
-		line-height: 44px !important;
-		font-size: 20px !important;
 	}
 
 	:global(.leaflet-control-attribution) {

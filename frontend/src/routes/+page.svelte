@@ -147,14 +147,12 @@
 			</button>
 		{/if}
 
-		<div class="map-legend" aria-label="Map legend">
-			{#each Object.keys(CATEGORY_LABELS) as key}
-				<div class="map-legend-item">
-					<span class="map-legend-dot" style={`background:${CATEGORY_COLORS[key]}`}></span>
-					<span class="map-legend-label">{CATEGORY_LABELS[key]}</span>
-				</div>
-			{/each}
-		</div>
+		<button class="map-plus-btn" type="button" aria-label="Add">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14" />
+				<path d="M5 12h14" />
+			</svg>
+		</button>
 	</section>
 
 	<section class="menu-pane">
@@ -166,7 +164,10 @@
 					{#each PLACE_ITEMS as place}
 						<div class="menu-item-card">
 							<div class="menu-item-main">
-								<p class="menu-item-name">{place.name}</p>
+								<p class="menu-item-name">
+									<span class="menu-item-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
+									{place.name}
+								</p>
 								<p class="menu-item-meta">
 									<span>{CATEGORY_LABELS[place.category]}</span>
 									<span>&middot;</span>
@@ -176,6 +177,25 @@
 							<p class="menu-item-contrib">By {place.contributor}</p>
 						</div>
 					{/each}
+				{:else if menuTab === 'Lists'}
+					<div class="menu-item-card">
+						<div class="menu-item-main">
+							<p class="menu-item-name">John Voyage Pubs</p>
+							<p class="menu-item-meta">By Sam Baker</p>
+						</div>
+					</div>
+					<div class="menu-item-card">
+						<div class="menu-item-main">
+							<p class="menu-item-name">The Shamans Pubs</p>
+							<p class="menu-item-meta">By Jack Shearman</p>
+						</div>
+					</div>
+					<div class="menu-item-card">
+						<div class="menu-item-main">
+							<p class="menu-item-name">Restaurants</p>
+							<p class="menu-item-meta">By Stan</p>
+						</div>
+					</div>
 				{:else}
 					<div class="menu-item-placeholder"></div>
 					<div class="menu-item-placeholder"></div>
@@ -308,7 +328,7 @@
 					{$directionsStore.destination?.name || 'Destination'}
 				</span>
 				<span class="directions-banner-stats">
-					{formatDuration($directionsStore.result.duration)} · {formatDistance($directionsStore.result.distance)}
+					{formatDuration($directionsStore.result.duration)} &middot; {formatDistance($directionsStore.result.distance)}
 				</span>
 			</div>
 			<button class="directions-banner-clear" onclick={() => directionsStore.clear()}>
@@ -456,12 +476,23 @@
 
 	.menu-item-name {
 		margin: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
 		font-size: 14px;
 		font-weight: 700;
 		color: #0f172a;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.menu-item-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+		flex-shrink: 0;
 	}
 
 	.menu-item-meta {
@@ -477,36 +508,6 @@
 		font-size: 12px;
 		color: #94a3b8;
 		white-space: nowrap;
-	}
-
-	.map-legend {
-		position: absolute;
-		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
-		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
-		z-index: 1100;
-		background: rgba(255, 255, 255, 0.92);
-		backdrop-filter: blur(6px);
-		border-radius: 14px;
-		padding: 10px 12px;
-		box-shadow: 0 6px 16px rgba(15, 23, 42, 0.14);
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.map-legend-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		font-size: 12px;
-		color: #475569;
-	}
-
-	.map-legend-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 
 
@@ -659,6 +660,40 @@
 	.draw-fab.active {
 		background: var(--color-highlight);
 		color: white;
+	}
+
+	.map-plus-btn {
+		position: absolute;
+		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+		bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+		z-index: 1100;
+		width: 44px;
+		height: 44px;
+		border: 0;
+		border-radius: 12px;
+		background: white;
+		color: #111827;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 6px 10px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+		transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.map-plus-btn:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 12px 18px rgba(0, 0, 0, 0.2), 0 5px 8px rgba(0, 0, 0, 0.14);
+		background: #f8fafc;
+	}
+
+	.map-plus-btn:active {
+		transform: translateY(0);
+	}
+
+	.map-plus-btn:focus-visible {
+		outline: 3px solid rgba(99, 102, 241, 0.6);
+		outline-offset: 2px;
 	}
 
 	.directions-banner {
