@@ -1,7 +1,13 @@
 <script lang="ts">
 	import '../app.css';
+	import { onMount } from 'svelte';
+	import { authStore } from '$stores/auth';
 
 	let { children } = $props();
+
+	onMount(() => {
+		authStore.initialize();
+	});
 </script>
 
 <div class="app">

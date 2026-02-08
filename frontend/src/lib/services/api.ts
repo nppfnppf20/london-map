@@ -8,8 +8,10 @@ import type {
 	RouteSearchParams,
 	DirectionsParams,
 	MultiStopParams,
-	DirectionsResult
+	DirectionsResult,
+	Profile
 } from '$types';
+import { supabase } from '$services/supabase';
 
 const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -19,12 +21,19 @@ interface ApiResponse<T> {
 }
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+		...options?.headers as Record<string, string>
+	};
+
+	const { data: { session } } = await supabase.auth.getSession();
+	if (session?.access_token) {
+		headers['Authorization'] = `Bearer ${session.access_token}`;
+	}
+
 	const response = await fetch(`${API_URL}${endpoint}`, {
 		...options,
-		headers: {
-			'Content-Type': 'application/json',
-			...options?.headers
-		}
+		headers
 	});
 
 	if (response.status === 204) {
@@ -194,6 +203,19 @@ export const routingApi = {
 		return request<DirectionsResult>('/routing/multi-stop', {
 			method: 'POST',
 			body: JSON.stringify(params)
+		});
+	}
+};
+
+export const profilesApi = {
+	getMe: (): Promise<Profile> => {
+		return request<Profile>('/profiles/me');
+	},
+
+	updateMe: (data: { username?: string; avatar_url?: string }): Promise<Profile> => {
+		return request<Profile>('/profiles/me', {
+			method: 'PUT',
+			body: JSON.stringify(data)
 		});
 	}
 };

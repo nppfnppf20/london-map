@@ -110,3 +110,16 @@ export interface DirectionsResult {
 	duration: number; // seconds
 	steps?: DirectionStep[];
 }
+
+export interface Profile {
+	id: string;
+	username: string;
+	avatar_url: string | null;
+	created_at: string;
+}
+
+export interface AuthState {
+	user: { id: string; email: string } | null;
+	session: { access_token: string } | null;
+	loading: boolean;
+}

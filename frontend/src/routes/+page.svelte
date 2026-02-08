@@ -12,13 +12,16 @@
 	import RouteBanner from '$components/ui/RouteBanner.svelte';
 	import RoutePlaceDetail from '$components/ui/RoutePlaceDetail.svelte';
 	import SearchBar from '$components/ui/SearchBar.svelte';
+	import AuthModal from '$components/ui/AuthModal.svelte';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { routeSearchStore } from '$stores/routeSearch';
 	import { nearbyStore } from '$stores/nearby';
 	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
+	import { authStore } from '$stores/auth';
 
+	let authModalOpen = $state(false);
 	let addModalOpen = $state(false);
 	let routeModalOpen = $state(false);
 	let addSiteToOpen = $state(false);
@@ -70,6 +73,31 @@
 	<RouteBanner />
 	{#if !pinMode && !$routeSearchStore.drawing}
 		<SearchBar />
+	{/if}
+
+	{#if !pinMode && !$routeSearchStore.drawing}
+		<button
+			class="auth-btn"
+			onclick={() => {
+				if ($authStore.user) {
+					authStore.signOut();
+				} else {
+					authModalOpen = true;
+				}
+			}}
+			aria-label={$authStore.user ? 'Sign out' : 'Sign in'}
+		>
+			{#if $authStore.user}
+				<span class="auth-avatar">
+					{$authStore.user.email.charAt(0).toUpperCase()}
+				</span>
+			{:else}
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+					<circle cx="12" cy="7" r="4"/>
+				</svg>
+			{/if}
+		</button>
 	{/if}
 
 	{#if $routeSearchStore.drawing}
@@ -277,6 +305,7 @@
 		}}
 	/>
 	<CreateRouteModal open={routeModalOpen} onClose={() => routeModalOpen = false} />
+	<AuthModal open={authModalOpen} onClose={() => authModalOpen = false} />
 </main>
 
 <style>
@@ -499,5 +528,39 @@
 
 	.directions-banner-clear:active {
 		background: #e5e7eb;
+	}
+
+	.auth-btn {
+		position: fixed;
+		top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+		left: calc(env(safe-area-inset-left, 0px) + var(--spacing-md));
+		z-index: 1100;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background: white;
+		color: #374151;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.auth-btn:active {
+		transform: scale(0.95);
+	}
+
+	.auth-avatar {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: var(--color-highlight);
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 13px;
+		font-weight: 700;
 	}
 </style>
