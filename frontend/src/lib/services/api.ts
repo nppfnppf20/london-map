@@ -1,5 +1,6 @@
 import type {
 	Place,
+	PlaceImage,
 	Route,
 	Collection,
 	PlaceCreateInput,
@@ -122,6 +123,46 @@ export const placesApi = {
 				routes: params.routes,
 				collection_ids: params.collectionIds
 			})
+		});
+	}
+};
+
+export const placeImagesApi = {
+	getForPlace: (placeId: string): Promise<PlaceImage[]> => {
+		return request<PlaceImage[]>(`/places/${placeId}/images`);
+	},
+
+	upload: async (placeId: string, file: File, caption?: string, sortOrder?: number): Promise<PlaceImage> => {
+		const formData = new FormData();
+		formData.append('image', file);
+		if (caption) formData.append('caption', caption);
+		if (sortOrder !== undefined) formData.append('sort_order', String(sortOrder));
+
+		const headers: Record<string, string> = {};
+		const { data: { session } } = await supabase.auth.getSession();
+		if (session?.access_token) {
+			headers['Authorization'] = `Bearer ${session.access_token}`;
+		}
+
+		const response = await fetch(`${API_URL}/places/${placeId}/images`, {
+			method: 'POST',
+			headers,
+			body: formData
+		});
+
+		const result = await response.json();
+		if (result.error) throw new Error(result.error);
+		return result.data;
+	},
+
+	delete: (imageId: string): Promise<void> => {
+		return request<void>(`/places/images/${imageId}`, { method: 'DELETE' });
+	},
+
+	updateSortOrder: (imageId: string, sortOrder: number): Promise<PlaceImage> => {
+		return request<PlaceImage>(`/places/images/${imageId}`, {
+			method: 'PUT',
+			body: JSON.stringify({ sort_order: sortOrder })
 		});
 	}
 };

@@ -1,13 +1,23 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import type { PlaceImage } from '$types';
+	import { placeImagesApi } from '$services/api';
 
 	interface Props {
 		audioPath?: string | null;
 		images?: PlaceImage[];
+		placeId?: string | null;
 	}
 
-	let { audioPath = null, images = [] }: Props = $props();
+	let { audioPath = null, images = [], placeId = null }: Props = $props();
+
+	let allImages = $state<PlaceImage[]>([]);
+	let fileInput: HTMLInputElement | null = null;
+	let uploading = $state(false);
+
+	$effect(() => {
+		allImages = [...images];
+	});
 
 	let viewerOpen = $state(false);
 	let activeIndex = $state(0);
@@ -87,6 +97,27 @@
 		};
 	});
 
+	function triggerUpload() {
+		fileInput?.click();
+	}
+
+	async function handleFileSelected(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file || !placeId) return;
+
+		uploading = true;
+		try {
+			const newImage = await placeImagesApi.upload(placeId, file);
+			allImages = [...allImages, newImage];
+		} catch (err) {
+			console.error('Failed to upload image:', err);
+		} finally {
+			uploading = false;
+			input.value = '';
+		}
+	}
+
 	function openViewer(index: number) {
 		activeIndex = index;
 		viewerOpen = true;
@@ -110,7 +141,7 @@
 	}
 
 	function goNext() {
-		if (activeIndex < images.length - 1) {
+		if (activeIndex < allImages.length - 1) {
 			activeIndex += 1;
 		}
 	}
@@ -149,13 +180,13 @@
 			<span class="audio-time">{formatTime(currentTime)}{#if duration} / {formatTime(duration)}{/if}</span>
 		</div>
 	{/if}
-	{#if images.length > 0}
+	{#if allImages.length > 0 || placeId}
 		<div class="gallery-header">
 			<span class="gallery-title">Photos</span>
-			<span class="gallery-subtitle">Tap to view</span>
+			<span class="gallery-subtitle">{allImages.length > 0 ? 'Tap to view' : ''}</span>
 		</div>
 		<div class="thumbnails">
-			{#each images as image, index}
+			{#each allImages as image, index}
 				<button class="thumb" type="button" onclick={() => openViewer(index)}>
 					<img src={image.image_path} alt={image.caption || ''} class="thumb-img" />
 					{#if image.caption}
@@ -163,24 +194,42 @@
 					{/if}
 				</button>
 			{/each}
+			{#if placeId}
+				<button class="thumb add-thumb" type="button" onclick={triggerUpload} disabled={uploading}>
+					{#if uploading}
+						<span class="add-icon uploading">…</span>
+					{:else}
+						<svg class="add-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M12 5v14M5 12h14"/>
+						</svg>
+					{/if}
+				</button>
+				<input
+					bind:this={fileInput}
+					type="file"
+					accept="image/*"
+					class="file-input-hidden"
+					onchange={handleFileSelected}
+				/>
+			{/if}
 		</div>
 	{/if}
 </div>
 
-{#if viewerOpen && images.length > 0}
+{#if viewerOpen && allImages.length > 0}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="viewer-backdrop" onclick={handleBackdropClick}>
 		<div class="viewer">
 			<div class="viewer-track" bind:this={trackEl}>
-				{#each images as image}
+				{#each allImages as image}
 					<div class="viewer-slide">
 						<img src={image.image_path} alt={image.caption || ''} class="viewer-image" />
 					</div>
 				{/each}
 			</div>
-			{#if images[activeIndex]?.caption}
-				<div class="viewer-caption">{images[activeIndex].caption}</div>
+			{#if allImages[activeIndex]?.caption}
+				<div class="viewer-caption">{allImages[activeIndex].caption}</div>
 			{/if}
 			<button class="viewer-close" type="button" onclick={closeViewer} aria-label="Close photos">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -192,7 +241,7 @@
 					<path d="M15 18l-6-6 6-6"/>
 				</svg>
 			</button>
-			<button class="viewer-nav next" type="button" onclick={goNext} disabled={activeIndex === images.length - 1} aria-label="Next photo">
+			<button class="viewer-nav next" type="button" onclick={goNext} disabled={activeIndex === allImages.length - 1} aria-label="Next photo">
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M9 18l6-6-6-6"/>
 				</svg>
@@ -318,6 +367,44 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+
+	.add-thumb {
+		background: #f9fafb;
+		border: 2px dashed #d1d5db;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.add-thumb:active {
+		background: #f3f4f6;
+		border-color: #9ca3af;
+	}
+
+	.add-thumb:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.add-icon {
+		color: #9ca3af;
+	}
+
+	.add-icon.uploading {
+		font-size: 18px;
+		color: #6b7280;
+	}
+
+	.file-input-hidden {
+		position: absolute;
+		width: 0;
+		height: 0;
+		overflow: hidden;
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	.thumb-label {

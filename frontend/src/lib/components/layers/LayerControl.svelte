@@ -1,16 +1,12 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { layerStore } from '$stores/layers';
-	import { routesStore } from '$stores/routes';
-	import { collectionsStore } from '$stores/collections';
 	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$utils/map-helpers';
-	import type { Category, ViewMode } from '$types';
+	import type { Category } from '$types';
 
 	let expanded = false;
-	const viewModes: { key: ViewMode; label: string }[] = [
-		{ key: 'sites', label: 'Sites' },
-		{ key: 'routes', label: 'Tours' },
-		{ key: 'collections', label: 'Collections' }
-	];
+	let panel: HTMLDivElement | null = null;
+	let toggleButton: HTMLButtonElement | null = null;
 
 	const categories: { key: Category; label: string; color: string }[] = [
 		{ key: 'history', label: CATEGORY_LABELS.history, color: CATEGORY_COLORS.history },
@@ -19,16 +15,43 @@
 		{ key: 'pub', label: CATEGORY_LABELS.pub, color: CATEGORY_COLORS.pub }
 	];
 
+	onMount(() => {
+		layerStore.setViewMode('sites');
+	});
+
 	function toggleExpand() {
 		expanded = !expanded;
 		if (expanded) {
-			collectionsStore.fetchAll();
+			layerStore.setViewMode('sites');
+		}
+	}
+
+	function handleWindowClick(event: MouseEvent) {
+		if (!expanded) return;
+		const target = event.target as Node | null;
+		if (!target) return;
+		if (panel?.contains(target)) return;
+		if (toggleButton?.contains(target)) return;
+		expanded = false;
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			expanded = false;
 		}
 	}
 </script>
 
+<svelte:window on:click={handleWindowClick} on:keydown={handleKeydown} />
+
 <div class="layer-toggle">
-	<button class="toggle-btn ui-btn ui-btn-secondary ui-btn-sm ui-btn-control" onclick={toggleExpand} aria-label="Toggle map">
+	<button
+		class="toggle-btn ui-btn ui-btn-secondary ui-btn-sm ui-btn-control"
+		bind:this={toggleButton}
+		onclick={toggleExpand}
+		aria-label="Toggle map"
+		aria-expanded={expanded}
+	>
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="M12 2L2 7l10 5 10-5-10-5z"/>
 			<path d="M2 17l10 5 10-5"/>
@@ -36,99 +59,29 @@
 		</svg>
 		<span>Toggle map</span>
 	</button>
-</div>
-
-{#if expanded}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="layer-backdrop" onclick={toggleExpand}>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="layer-panel ui-panel" onclick={(e) => e.stopPropagation()}>
+	{#if expanded}
+		<div class="layer-panel ui-panel" bind:this={panel} role="menu" aria-label="Site categories">
 			<div class="panel-header ui-panel-header">
-				<span class="panel-title ui-panel-title">Layers</span>
-				<button class="panel-close close-btn" onclick={toggleExpand} aria-label="Close">
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M18 6L6 18M6 6l12 12"/>
-					</svg>
-				</button>
+				<span class="panel-title ui-panel-title">Sites</span>
 			</div>
 			<div class="layer-list">
 				<div class="section">
-					<span class="section-title">View by</span>
-					<div class="view-mode">
-						{#each viewModes as mode}
-							<button
-								type="button"
-								class="mode-btn ui-mode-btn"
-								class:active={$layerStore.viewMode === mode.key}
-								onclick={() => layerStore.setViewMode(mode.key)}
-							>
-								{mode.label}
-							</button>
-						{/each}
-					</div>
+					{#each categories as cat}
+						<label class="layer-item ui-item">
+							<input
+								type="checkbox"
+								checked={$layerStore.sites[cat.key]}
+								onchange={() => layerStore.toggleSite(cat.key)}
+							/>
+							<span class="color-dot" style="background-color: {cat.color}"></span>
+							<span class="label">{cat.label}</span>
+						</label>
+					{/each}
 				</div>
-
-				{#if $layerStore.viewMode === 'collections'}
-					<div class="section">
-						<span class="section-title">Collections</span>
-						{#if $collectionsStore.loading}
-							<p class="empty-note">Loading collections...</p>
-						{:else if $collectionsStore.collections.length === 0}
-							<p class="empty-note">No collections yet.</p>
-						{:else}
-							{#each $collectionsStore.collections as collection}
-								<label class="layer-item ui-item">
-									<input
-										type="checkbox"
-										checked={$layerStore.collections[collection.id]}
-										onchange={() => layerStore.toggleCollection(collection.id)}
-									/>
-									<span
-										class="color-dot"
-										style="background-color: {collection.color || '#94a3b8'}"
-									></span>
-									<span class="label">{collection.name}</span>
-								</label>
-							{/each}
-						{/if}
-					</div>
-				{:else if $layerStore.viewMode === 'sites'}
-					<div class="section">
-						<span class="section-title">Sites</span>
-						{#each categories as cat}
-							<label class="layer-item ui-item">
-								<input
-									type="checkbox"
-									checked={$layerStore.sites[cat.key]}
-									onchange={() => layerStore.toggleSite(cat.key)}
-								/>
-								<span class="color-dot" style="background-color: {cat.color}"></span>
-								<span class="label">{cat.label}</span>
-							</label>
-						{/each}
-					</div>
-				{:else}
-					<div class="section">
-						<span class="section-title">Tours</span>
-						{#each Object.entries($routesStore) as [name, color]}
-							<label class="layer-item ui-item">
-								<input
-									type="checkbox"
-									checked={$layerStore.routes[name]}
-									onchange={() => layerStore.toggleRoute(name)}
-								/>
-								<span class="color-dot" style="background-color: {color}"></span>
-								<span class="label">{name}</span>
-							</label>
-						{/each}
-					</div>
-				{/if}
 			</div>
 		</div>
-	</div>
-{/if}
+	{/if}
+</div>
 
 <style>
 	.layer-toggle {
@@ -157,26 +110,18 @@
 		transform: scale(0.92);
 	}
 
-	.layer-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		z-index: 2000;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--spacing-md);
-	}
-
 	.layer-panel {
+		position: absolute;
+		right: 0;
+		top: calc(100% + var(--spacing-xs));
 		background: white;
 		border-radius: var(--radius-lg);
-		width: 100%;
-		max-width: 360px;
-		max-height: 80vh;
+		width: 280px;
+		max-height: 70vh;
 		display: flex;
 		flex-direction: column;
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		z-index: 2000;
 	}
 
 	.panel-close {
@@ -213,17 +158,6 @@
 
 	.section-title.disabled {
 		color: #d1d5db;
-	}
-
-	.view-mode {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--spacing-xs);
-		padding: 0 var(--spacing-xs) var(--spacing-xs);
-	}
-
-	.mode-btn {
-		border: 1px solid var(--gray-200);
 	}
 
 	.color-dot {
