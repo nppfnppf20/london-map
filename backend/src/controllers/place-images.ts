@@ -18,7 +18,8 @@ export async function addImage(req: Request, res: Response): Promise<void> {
 			placeId,
 			{ buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname },
 			caption,
-			sortOrder
+			sortOrder,
+			req.user!.id
 		);
 
 		res.status(201).json({ data: image, error: null });

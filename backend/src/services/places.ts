@@ -69,7 +69,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
 	return data ? transformPlace(data as PlaceRow) : null;
 }
 
-export async function createPlace(dto: CreatePlaceDto): Promise<Place> {
+export async function createPlace(dto: CreatePlaceDto, userId: string): Promise<Place> {
 	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
@@ -83,7 +83,8 @@ export async function createPlace(dto: CreatePlaceDto): Promise<Place> {
 			priority: dto.priority || null,
 			route: dto.route || null,
 			route_stop: dto.route_stop || null,
-			tags: dto.tags || []
+			tags: dto.tags || [],
+			created_by: userId
 		})
 		.select()
 		.single();

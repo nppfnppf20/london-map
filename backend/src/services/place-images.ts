@@ -10,7 +10,8 @@ export async function addImage(
 	placeId: string,
 	file: { buffer: Buffer; mimetype: string; originalname: string },
 	caption: string | null,
-	sortOrder: number
+	sortOrder: number,
+	userId: string
 ): Promise<PlaceImage> {
 	const supabase = getSupabaseClient();
 
@@ -36,7 +37,8 @@ export async function addImage(
 			place_id: placeId,
 			image_path: imagePath,
 			caption,
-			sort_order: sortOrder
+			sort_order: sortOrder,
+			created_by: userId
 		})
 		.select()
 		.single();

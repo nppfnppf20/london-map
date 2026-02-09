@@ -1,5 +1,7 @@
 export type Category = 'history' | 'architecture' | 'food' | 'pub';
 export type Priority = 'site' | 'route';
+export type Visibility = 'public' | 'private' | 'friends' | 'friends_of_friends';
+export type Role = 'admin' | 'curator' | 'user';
 export type ViewMode = 'collections' | 'sites' | 'routes';
 export type NearbyMode = 'sites' | 'routes' | 'collections';
 export type RouteSearchMode = NearbyMode;
@@ -16,6 +18,8 @@ export interface Place {
 	route_stop: number | null;
 	tags: string[];
 	audio_path: string | null;
+	created_by: string | null;
+	visibility: Visibility;
 	created_at: string;
 	updated_at: string;
 	collections?: Collection[];
@@ -28,6 +32,7 @@ export interface PlaceImage {
 	image_path: string;
 	caption: string | null;
 	sort_order: number;
+	created_by: string | null;
 	created_at: string;
 }
 
@@ -54,6 +59,8 @@ export interface Collection {
 	name: string;
 	description: string | null;
 	color: string | null;
+	created_by: string | null;
+	visibility: Visibility;
 	created_at: string;
 	updated_at: string;
 }
@@ -126,6 +133,7 @@ export interface Profile {
 	id: string;
 	username: string;
 	avatar_url: string | null;
+	role: Role;
 	created_at: string;
 }
 

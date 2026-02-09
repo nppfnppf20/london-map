@@ -38,7 +38,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 			return;
 		}
 
-		const collection = await collectionsService.createCollection(dto);
+		const collection = await collectionsService.createCollection(dto, req.user!.id);
 		res.status(201).json({ data: collection, error: null });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';

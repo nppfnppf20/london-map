@@ -37,7 +37,7 @@ export async function getCollectionById(id: string): Promise<Collection | null> 
 	return data;
 }
 
-export async function createCollection(dto: CreateCollectionDto): Promise<Collection> {
+export async function createCollection(dto: CreateCollectionDto, userId: string): Promise<Collection> {
 	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
@@ -45,7 +45,8 @@ export async function createCollection(dto: CreateCollectionDto): Promise<Collec
 		.insert({
 			name: dto.name,
 			description: dto.description || null,
-			color: dto.color || null
+			color: dto.color || null,
+			created_by: userId
 		})
 		.select()
 		.single();
