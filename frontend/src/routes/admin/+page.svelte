@@ -74,6 +74,31 @@
 		selectedRoutes = next;
 	}
 
+	function toggleAllCollections() {
+		if (selectedCollections.size === collections.length) {
+			selectedCollections = new Set();
+		} else {
+			selectedCollections = new Set(collections.map(c => c.id));
+		}
+	}
+
+	function toggleAllRoutes() {
+		const routeNames = Object.keys($routesStore);
+		if (selectedRoutes.size === routeNames.length) {
+			selectedRoutes = new Set();
+		} else {
+			selectedRoutes = new Set(routeNames);
+		}
+	}
+
+	function toggleAllPlaces() {
+		if (selectedPlaces.size === places.length) {
+			selectedPlaces = new Set();
+		} else {
+			selectedPlaces = new Set(places.map(p => p.id));
+		}
+	}
+
 	let canCreate = $derived(
 		linkName.trim() && (selectedPlaces.size > 0 || selectedCollections.size > 0 || selectedRoutes.size > 0)
 	);
@@ -165,7 +190,14 @@
 					/>
 				</div>
 
-				<h3 class="section-label">Collections ({selectedCollections.size} selected)</h3>
+				<div class="section-header">
+					<h3 class="section-label">Collections ({selectedCollections.size} selected)</h3>
+					{#if collections.length > 0}
+						<button class="select-all-btn" type="button" onclick={toggleAllCollections}>
+							{selectedCollections.size === collections.length ? 'Deselect all' : 'Select all'}
+						</button>
+					{/if}
+				</div>
 				<div class="select-list">
 					{#each collections as collection}
 						<button
@@ -187,7 +219,14 @@
 					{/each}
 				</div>
 
-				<h3 class="section-label">Routes ({selectedRoutes.size} selected)</h3>
+				<div class="section-header">
+					<h3 class="section-label">Routes ({selectedRoutes.size} selected)</h3>
+					{#if Object.keys($routesStore).length > 0}
+						<button class="select-all-btn" type="button" onclick={toggleAllRoutes}>
+							{selectedRoutes.size === Object.keys($routesStore).length ? 'Deselect all' : 'Select all'}
+						</button>
+					{/if}
+				</div>
 				<div class="select-list">
 					{#each Object.entries($routesStore) as [name, color]}
 						<button
@@ -209,7 +248,14 @@
 					{/each}
 				</div>
 
-				<h3 class="section-label">Places ({selectedPlaces.size} selected)</h3>
+				<div class="section-header">
+					<h3 class="section-label">Places ({selectedPlaces.size} selected)</h3>
+					{#if places.length > 0}
+						<button class="select-all-btn" type="button" onclick={toggleAllPlaces}>
+							{selectedPlaces.size === places.length ? 'Deselect all' : 'Select all'}
+						</button>
+					{/if}
+				</div>
 				<div class="select-list">
 					{#each places as place}
 						<button
@@ -360,13 +406,33 @@
 		color: #0f172a;
 	}
 
-	h3.section-label {
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		margin: 16px 0 8px;
+	}
+
+	h3.section-label {
+		margin: 0;
 		font-size: 13px;
 		font-weight: 600;
 		color: #6b7280;
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
+	}
+
+	.select-all-btn {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--color-highlight, #6366f1);
+		background: none;
+		padding: 4px 8px;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.select-all-btn:active {
+		opacity: 0.7;
 	}
 
 	.field {
