@@ -25,7 +25,9 @@
 	import { nearbyStore } from '$stores/nearby';
 	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
 	import { layerStore } from '$stores/layers';
+	import { authStore } from '$stores/auth';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
+	import { goto } from '$app/navigation';
 
 	let authModalOpen = $state(false);
 	let addModalOpen = $state(false);
@@ -416,17 +418,31 @@
 							</button>
 						</div>
 					{/if}
-					<button
-						class="bar-btn ui-btn ui-btn-secondary"
-						onclick={() => {
-							addMenuOpen = false;
-							exploreModalOpen = false;
-							authModalOpen = true;
-						}}
-						aria-label="Login"
-					>
-						Login
-					</button>
+					{#if $authStore.user}
+						<button
+							class="bar-btn ui-btn ui-btn-secondary"
+							onclick={() => goto('/profile')}
+							aria-label="Profile"
+						>
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+								<circle cx="12" cy="7" r="4"/>
+							</svg>
+							Profile
+						</button>
+					{:else}
+						<button
+							class="bar-btn ui-btn ui-btn-secondary"
+							onclick={() => {
+								addMenuOpen = false;
+								exploreModalOpen = false;
+								authModalOpen = true;
+							}}
+							aria-label="Login"
+						>
+							Login
+						</button>
+					{/if}
 				</div>
 			</div>
 		{/if}
