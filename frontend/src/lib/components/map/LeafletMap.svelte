@@ -42,8 +42,74 @@
 	let locationMarker: L.Marker | null = null;
 	let locationAccuracyCircle: L.Circle | null = null;
 	let watchId: number | null = null;
+	let expandedRoute: string | null = null;
+	let tourLine: L.Polyline | null = null;
+	let routePreviewIds = new Set<string>();
 
 	export let pinMode = false;
+
+	// For routes viewMode: find the single "preview" place per route
+	function getRoutePreviewIds(layers: LayerState): Set<string> {
+		const previewIds = new Set<string>();
+		const places = $placesStore.places;
+
+		// Group places by route name (only enabled routes)
+		const routePlaces: Record<string, Place[]> = {};
+		for (const place of places) {
+			if (place.route && layers.routes[place.route]) {
+				if (!routePlaces[place.route]) routePlaces[place.route] = [];
+				routePlaces[place.route].push(place);
+			}
+		}
+
+		// Pick the first stop (lowest route_stop) or first place if none numbered
+		for (const routeName of Object.keys(routePlaces)) {
+			const rPlaces = routePlaces[routeName];
+			const numbered = rPlaces.filter(p => p.route_stop != null).sort((a, b) => a.route_stop! - b.route_stop!);
+			if (numbered.length > 0) {
+				previewIds.add(numbered[0].id);
+			} else {
+				previewIds.add(rPlaces[0].id);
+			}
+		}
+
+		return previewIds;
+	}
+
+	function drawTourLine(routeName: string) {
+		if (!map || !leaflet) return;
+
+		// Remove existing tour line
+		if (tourLine) {
+			tourLine.remove();
+			tourLine = null;
+		}
+
+		const places = $placesStore.places
+			.filter(p => p.route === routeName)
+			.sort((a, b) => (a.route_stop ?? 999) - (b.route_stop ?? 999));
+
+		if (places.length < 2) return;
+
+		const latlngs = places.map(p => leaflet.latLng(p.latitude, p.longitude));
+		const color = getRouteColor(routeName);
+
+		tourLine = leaflet.polyline(latlngs, {
+			color,
+			weight: 4,
+			opacity: 0.7,
+			lineCap: 'round',
+			lineJoin: 'round',
+			dashArray: '8, 12'
+		}).addTo(map);
+	}
+
+	function clearTourLine() {
+		if (tourLine) {
+			tourLine.remove();
+			tourLine = null;
+		}
+	}
 
 	// Determine how a place should render given current layer state
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
@@ -67,7 +133,14 @@
 
 		if (layers.viewMode === 'routes') {
 			if (place.route && layers.routes[place.route]) {
-				return 'route';
+				// If this route is expanded, show all its stops
+				if (expandedRoute === place.route) {
+					return 'route';
+				}
+				// Otherwise only show the preview marker
+				if (routePreviewIds.has(place.id)) {
+					return 'route';
+				}
 			}
 			return 'hidden';
 		}
@@ -262,6 +335,21 @@
 
 	function handleMarkerClick(place: Place) {
 		if (pinMode) return;
+
+		const layers = $layerStore;
+
+		// In routes viewMode, clicking a preview marker expands the tour
+		if (layers.viewMode === 'routes' && place.route && !expandedRoute) {
+			if (routePreviewIds.has(place.id)) {
+				expandedRoute = place.route;
+				drawTourLine(place.route);
+				updateMarkers();
+				return;
+			}
+		}
+
+		// If a tour is expanded and user clicks a stop, show its detail
+		// Clicking the map backdrop or toggling will collapse (handled elsewhere)
 		selectedPlace.select(place);
 	}
 
@@ -411,6 +499,14 @@
 			}
 		});
 
+		map.on('click', () => {
+			if (expandedRoute) {
+				expandedRoute = null;
+				clearTourLine();
+				updateMarkers();
+			}
+		});
+
 		map.on('mousedown', handleDrawStart);
 		map.on('mousemove', handleDrawMove);
 		map.on('mouseup', handleDrawEnd);
@@ -447,11 +543,24 @@
 			drawLine.remove();
 			drawLine = null;
 		}
+		if (tourLine) {
+			tourLine.remove();
+			tourLine = null;
+		}
 		markers.clear();
 	});
 
 	// React to layer changes — update visibility AND icons
 	$: if (map && $layerStore && $nearbyStore && $routeSearchStore) {
+		routePreviewIds = getRoutePreviewIds($layerStore);
+
+		// Collapse expanded tour if we switched away from routes viewMode
+		// or if the expanded route was toggled off
+		if ($layerStore.viewMode !== 'routes' || (expandedRoute && !$layerStore.routes[expandedRoute])) {
+			expandedRoute = null;
+			clearTourLine();
+		}
+
 		updateMarkers();
 	}
 

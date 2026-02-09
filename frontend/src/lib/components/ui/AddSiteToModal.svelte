@@ -13,9 +13,16 @@
 
 	let { open, place, onClose }: Props = $props();
 
+	const COLLECTION_COLORS = [
+		'#3b82f6', '#8b5cf6', '#ec4899', '#ef4444',
+		'#f97316', '#f59e0b', '#22c55e', '#14b8a6',
+		'#06b6d4', '#6366f1', '#a855f7', '#94a3b8'
+	];
+
 	let selectedRoute = $state('');
 	let selectedCollections = $state<string[]>([]);
 	let newCollectionName = $state('');
+	let newCollectionColor = $state(COLLECTION_COLORS[0]);
 	let saving = $state(false);
 	let error = $state('');
 
@@ -54,8 +61,9 @@
 		if (!trimmed) return;
 
 		try {
-			await collectionsApi.create({ name: trimmed });
+			await collectionsApi.create({ name: trimmed, color: newCollectionColor });
 			newCollectionName = '';
+			newCollectionColor = COLLECTION_COLORS[0];
 			await collectionsStore.fetchAll();
 		} catch (err) {
 			const message = err instanceof Error ? err.message : 'Failed to create collection';
@@ -123,6 +131,7 @@
 										checked={selectedCollections.includes(collection.id)}
 										onchange={() => toggleCollection(collection.id)}
 									/>
+									<span class="collection-dot" style="background:{collection.color || '#94a3b8'}"></span>
 									<span class="collection-label">{collection.name}</span>
 								</label>
 							{/each}
@@ -130,14 +139,28 @@
 					{/if}
 
 					<div class="create-collection">
-						<input
-							type="text"
-							placeholder="New collection name"
-							bind:value={newCollectionName}
-						/>
-						<button type="button" onclick={handleCreateCollection} disabled={!newCollectionName.trim()}>
-							Create
-						</button>
+						<div class="create-collection-row">
+							<input
+								type="text"
+								placeholder="New collection name"
+								bind:value={newCollectionName}
+							/>
+							<button type="button" onclick={handleCreateCollection} disabled={!newCollectionName.trim()}>
+								Create
+							</button>
+						</div>
+						<div class="color-swatches">
+							{#each COLLECTION_COLORS as color}
+								<button
+									type="button"
+									class="color-swatch"
+									class:selected={newCollectionColor === color}
+									style="background:{color}"
+									onclick={() => newCollectionColor = color}
+									aria-label="Select color {color}"
+								></button>
+							{/each}
+						</div>
 					</div>
 				</div>
 
@@ -273,6 +296,13 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 
+	.collection-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
 	.collection-label {
 		font-size: 14px;
 		font-weight: 500;
@@ -280,10 +310,16 @@
 
 	.create-collection {
 		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.create-collection-row {
+		display: flex;
 		gap: var(--spacing-sm);
 	}
 
-	.create-collection input {
+	.create-collection-row input {
 		flex: 1;
 		padding: 10px 12px;
 		border: 1px solid #d1d5db;
@@ -291,7 +327,7 @@
 		font-size: 14px;
 	}
 
-	.create-collection button {
+	.create-collection-row button {
 		padding: 10px 12px;
 		border-radius: var(--radius-md);
 		background: #111827;
@@ -299,6 +335,26 @@
 		font-size: 14px;
 		font-weight: 600;
 		-webkit-tap-highlight-color: transparent;
+	}
+
+	.color-swatches {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.color-swatch {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		border: 2px solid transparent;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.color-swatch.selected {
+		border-color: #111827;
+		box-shadow: 0 0 0 2px white inset;
 	}
 
 	select {

@@ -17,6 +17,7 @@
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
 	import { placesStore } from '$stores/places';
 	import { collectionsStore } from '$stores/collections';
+	import { routesStore } from '$stores/routes';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -349,9 +350,30 @@
 							{/each}
 						{/if}
 					{:else}
-						<div class="menu-item-placeholder"></div>
-						<div class="menu-item-placeholder"></div>
-						<div class="menu-item-placeholder"></div>
+						{#if Object.keys($routesStore).length === 0}
+							<p class="menu-empty ui-meta">No tours yet.</p>
+						{:else}
+							{#each Object.entries($routesStore) as [name, color]}
+								<button
+									class="menu-item-card ui-card menu-item-toggle"
+									class:active={$layerStore.routes[name]}
+									type="button"
+									onclick={() => layerStore.toggleRoute(name)}
+								>
+									<span
+										class="menu-item-check"
+										class:checked={$layerStore.routes[name]}
+										style={$layerStore.routes[name] ? `background:${color}; border-color:${color}` : ''}
+									></span>
+									<div class="menu-item-main">
+										<p class="menu-item-name">
+											<span class="menu-item-dot ui-dot" style={`background:${color}`}></span>
+											{name}
+										</p>
+									</div>
+								</button>
+							{/each}
+						{/if}
 					{/if}
 				</div>
 			{/if}
