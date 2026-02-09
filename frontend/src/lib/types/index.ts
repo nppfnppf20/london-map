@@ -19,6 +19,16 @@ export interface Place {
 	created_at: string;
 	updated_at: string;
 	collections?: Collection[];
+	images?: PlaceImage[];
+}
+
+export interface PlaceImage {
+	id: string;
+	place_id: string;
+	image_path: string;
+	caption: string | null;
+	sort_order: number;
+	created_at: string;
 }
 
 export interface Route {

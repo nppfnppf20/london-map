@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabase.js';
 import type {
 	Place,
+	PlaceImage,
 	CreatePlaceDto,
 	UpdatePlaceDto,
 	Category,
@@ -10,18 +11,23 @@ import type {
 } from '../types/index.js';
 
 const TABLE_NAME = 'places';
+const PLACE_SELECT = '*, place_collections(collection_id, collections(*)), place_images(*)';
 
 type PlaceRow = Place & {
 	place_collections?: { collections: Collection | null }[];
+	place_images?: PlaceImage[];
 };
 
-function withCollections(place: PlaceRow): Place {
+function transformPlace(place: PlaceRow): Place {
 	const collections = place.place_collections
 		?.map(link => link.collections)
 		.filter((collection): collection is Collection => Boolean(collection)) || [];
 
-	const { place_collections, ...rest } = place;
-	return { ...rest, collections };
+	const images = (place.place_images || [])
+		.sort((a, b) => a.sort_order - b.sort_order);
+
+	const { place_collections, place_images, ...rest } = place;
+	return { ...rest, collections, images };
 }
 
 export async function getAllPlaces(category?: Category): Promise<Place[]> {
@@ -29,7 +35,7 @@ export async function getAllPlaces(category?: Category): Promise<Place[]> {
 
 	let query = supabase
 		.from(TABLE_NAME)
-		.select('*, place_collections(collection_id, collections(*))');
+		.select(PLACE_SELECT);
 
 	if (category) {
 		query = query.eq('category', category);
@@ -41,7 +47,7 @@ export async function getAllPlaces(category?: Category): Promise<Place[]> {
 		throw new Error(`Failed to fetch places: ${error.message}`);
 	}
 
-	return (data || []).map(place => withCollections(place as PlaceRow));
+	return (data || []).map(place => transformPlace(place as PlaceRow));
 }
 
 export async function getPlaceById(id: string): Promise<Place | null> {
@@ -49,7 +55,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
 
 	const { data, error } = await supabase
 		.from(TABLE_NAME)
-		.select('*, place_collections(collection_id, collections(*))')
+		.select(PLACE_SELECT)
 		.eq('id', id)
 		.single();
 
@@ -60,7 +66,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
 		throw new Error(`Failed to fetch place: ${error.message}`);
 	}
 
-	return data ? withCollections(data as PlaceRow) : null;
+	return data ? transformPlace(data as PlaceRow) : null;
 }
 
 export async function createPlace(dto: CreatePlaceDto): Promise<Place> {

@@ -1,23 +1,13 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import type { PlaceImage } from '$types';
 
 	interface Props {
 		audioPath?: string | null;
+		images?: PlaceImage[];
 	}
 
-	let { audioPath = null }: Props = $props();
-
-	type PlaceholderImage = {
-		id: string;
-		label: string;
-	};
-
-	const images: PlaceholderImage[] = [
-		{ id: 'img-1', label: 'Front view' },
-		{ id: 'img-2', label: 'Interior' },
-		{ id: 'img-3', label: 'Details' },
-		{ id: 'img-4', label: 'Street view' }
-	];
+	let { audioPath = null, images = [] }: Props = $props();
 
 	let viewerOpen = $state(false);
 	let activeIndex = $state(0);
@@ -25,24 +15,67 @@
 
 	let audioEl: HTMLAudioElement | null = null;
 	let isPlaying = $state(false);
+	let currentTime = $state(0);
+	let duration = $state(0);
+	let seeking = $state(false);
+	let progressBarEl: HTMLDivElement | null = null;
+
+	function formatTime(seconds: number): string {
+		const m = Math.floor(seconds / 60);
+		const s = Math.floor(seconds % 60);
+		return `${m}:${s.toString().padStart(2, '0')}`;
+	}
+
+	function ensureAudio() {
+		if (audioEl || !audioPath) return;
+		audioEl = new Audio(audioPath);
+		audioEl.addEventListener('ended', () => {
+			isPlaying = false;
+			currentTime = 0;
+		});
+		audioEl.addEventListener('loadedmetadata', () => {
+			duration = audioEl!.duration;
+		});
+		audioEl.addEventListener('timeupdate', () => {
+			if (!seeking) {
+				currentTime = audioEl!.currentTime;
+			}
+		});
+	}
 
 	function toggleAudio() {
 		if (!audioPath) return;
-
-		if (!audioEl) {
-			audioEl = new Audio(audioPath);
-			audioEl.addEventListener('ended', () => {
-				isPlaying = false;
-			});
-		}
+		ensureAudio();
 
 		if (isPlaying) {
-			audioEl.pause();
+			audioEl!.pause();
 			isPlaying = false;
 		} else {
-			audioEl.play();
+			audioEl!.play();
 			isPlaying = true;
 		}
+	}
+
+	function seekFromEvent(e: MouseEvent | Touch) {
+		if (!progressBarEl || !audioEl || !duration) return;
+		const rect = progressBarEl.getBoundingClientRect();
+		const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+		audioEl.currentTime = ratio * duration;
+		currentTime = audioEl.currentTime;
+	}
+
+	function onBarPointerDown(e: PointerEvent) {
+		if (!audioEl || !duration) return;
+		seeking = true;
+		seekFromEvent(e);
+		const onMove = (ev: PointerEvent) => seekFromEvent(ev);
+		const onUp = () => {
+			seeking = false;
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
+		};
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
 	}
 
 	$effect(() => {
@@ -96,12 +129,8 @@
 </script>
 
 <div class="gallery">
-	<div class="gallery-header">
-		<span class="gallery-title">Photos</span>
-		<span class="gallery-subtitle">Tap to view</span>
-	</div>
 	{#if audioPath}
-		<div class="audio-row">
+		<div class="audio-player">
 			<button class="audio-play" class:playing={isPlaying} type="button" aria-label={isPlaying ? 'Pause audio' : 'Play audio'} onclick={toggleAudio}>
 				<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 					{#if isPlaying}
@@ -111,19 +140,34 @@
 					{/if}
 				</svg>
 			</button>
-			<span class="audio-label">{isPlaying ? 'Playing…' : 'Play audio'}</span>
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="audio-bar" bind:this={progressBarEl} onpointerdown={onBarPointerDown}>
+				<div class="audio-bar-fill" style="width: {duration ? (currentTime / duration) * 100 : 0}%">
+					<div class="audio-bar-thumb"></div>
+				</div>
+			</div>
+			<span class="audio-time">{formatTime(currentTime)}{#if duration} / {formatTime(duration)}{/if}</span>
 		</div>
 	{/if}
-	<div class="thumbnails">
-		{#each images as image, index}
-			<button class="thumb" type="button" onclick={() => openViewer(index)}>
-				<span class="thumb-label">{image.label}</span>
-			</button>
-		{/each}
-	</div>
+	{#if images.length > 0}
+		<div class="gallery-header">
+			<span class="gallery-title">Photos</span>
+			<span class="gallery-subtitle">Tap to view</span>
+		</div>
+		<div class="thumbnails">
+			{#each images as image, index}
+				<button class="thumb" type="button" onclick={() => openViewer(index)}>
+					<img src={image.image_path} alt={image.caption || ''} class="thumb-img" />
+					{#if image.caption}
+						<span class="thumb-label">{image.caption}</span>
+					{/if}
+				</button>
+			{/each}
+		</div>
+	{/if}
 </div>
 
-{#if viewerOpen}
+{#if viewerOpen && images.length > 0}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="viewer-backdrop" onclick={handleBackdropClick}>
@@ -131,12 +175,13 @@
 			<div class="viewer-track" bind:this={trackEl}>
 				{#each images as image}
 					<div class="viewer-slide">
-						<div class="viewer-image">
-							<span>{image.label}</span>
-						</div>
+						<img src={image.image_path} alt={image.caption || ''} class="viewer-image" />
 					</div>
 				{/each}
 			</div>
+			{#if images[activeIndex]?.caption}
+				<div class="viewer-caption">{images[activeIndex].caption}</div>
+			{/if}
 			<button class="viewer-close" type="button" onclick={closeViewer} aria-label="Close photos">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M18 6L6 18M6 6l12 12"/>
@@ -182,17 +227,16 @@
 		color: #9ca3af;
 	}
 
-	.audio-row {
+	.audio-player {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		color: #6b7280;
-		font-size: 12px;
 	}
 
 	.audio-play {
-		width: 26px;
-		height: 26px;
+		width: 28px;
+		height: 28px;
+		min-width: 28px;
 		border-radius: 999px;
 		background: #dbeafe;
 		color: #1d4ed8;
@@ -209,12 +253,44 @@
 		border-color: #1d4ed8;
 	}
 
-	.audio-label {
-		font-weight: 600;
+	.audio-bar {
+		flex: 1;
+		height: 6px;
+		background: #e5e7eb;
+		border-radius: 999px;
+		position: relative;
+		cursor: pointer;
+		touch-action: none;
 	}
 
-	.audio-contributor {
-		color: #9ca3af;
+	.audio-bar-fill {
+		height: 100%;
+		background: #3b82f6;
+		border-radius: 999px;
+		position: relative;
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	.audio-bar-thumb {
+		position: absolute;
+		right: -5px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 12px;
+		height: 12px;
+		border-radius: 999px;
+		background: #1d4ed8;
+		border: 2px solid white;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	}
+
+	.audio-time {
+		font-size: 11px;
+		color: #6b7280;
+		white-space: nowrap;
+		min-width: 70px;
+		text-align: right;
 	}
 
 	.thumbnails {
@@ -227,22 +303,33 @@
 		aspect-ratio: 1 / 1;
 		border-radius: var(--radius-md);
 		border: 1px solid #e5e7eb;
-		background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+		overflow: hidden;
 		display: flex;
 		align-items: flex-end;
 		justify-content: flex-start;
-		padding: 8px;
-		color: #374151;
-		font-size: 11px;
-		font-weight: 600;
-		text-align: left;
+		padding: 0;
+		position: relative;
 		-webkit-tap-highlight-color: transparent;
 	}
 
+	.thumb-img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
 	.thumb-label {
+		position: relative;
+		z-index: 1;
 		background: rgba(255, 255, 255, 0.8);
 		padding: 2px 6px;
 		border-radius: 999px;
+		margin: 6px;
+		font-size: 11px;
+		font-weight: 600;
+		color: #374151;
 	}
 
 	.viewer-backdrop {
@@ -289,14 +376,17 @@
 	}
 
 	.viewer-image {
+		width: 100%;
 		aspect-ratio: 16 / 10;
 		border-radius: var(--radius-lg);
-		background: linear-gradient(135deg, #e5e7eb, #cbd5f5);
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		object-fit: cover;
+	}
+
+	.viewer-caption {
+		padding: 0 var(--spacing-lg) var(--spacing-md);
+		font-size: 13px;
 		color: #374151;
-		font-weight: 600;
+		text-align: center;
 	}
 
 	.viewer-nav {
