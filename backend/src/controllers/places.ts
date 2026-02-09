@@ -24,7 +24,7 @@ function parseList(value: unknown): string[] {
 export async function getAll(req: Request, res: Response): Promise<void> {
 	try {
 		const category = req.query.category as Category | undefined;
-		const places = await placesService.getAllPlaces(category);
+		const places = await placesService.getAllPlaces(category, req.user?.id);
 		res.json({ data: places, error: null });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
@@ -35,7 +35,7 @@ export async function getAll(req: Request, res: Response): Promise<void> {
 export async function getById(req: Request, res: Response): Promise<void> {
 	try {
 		const { id } = req.params;
-		const place = await placesService.getPlaceById(id);
+		const place = await placesService.getPlaceById(id, req.user?.id);
 
 		if (!place) {
 			res.status(404).json({ data: null, error: 'Place not found' });

@@ -4,7 +4,7 @@ import type { CreateCollectionDto, UpdateCollectionDto } from '../types/index.js
 
 export async function getAll(req: Request, res: Response): Promise<void> {
 	try {
-		const collections = await collectionsService.getAllCollections();
+		const collections = await collectionsService.getAllCollections(req.user?.id);
 		res.json({ data: collections, error: null });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
@@ -15,7 +15,7 @@ export async function getAll(req: Request, res: Response): Promise<void> {
 export async function getById(req: Request, res: Response): Promise<void> {
 	try {
 		const { id } = req.params;
-		const collection = await collectionsService.getCollectionById(id);
+		const collection = await collectionsService.getCollectionById(id, req.user?.id);
 
 		if (!collection) {
 			res.status(404).json({ data: null, error: 'Collection not found' });

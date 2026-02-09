@@ -3,13 +3,25 @@ import type { Collection, CreateCollectionDto, UpdateCollectionDto } from '../ty
 
 const TABLE_NAME = 'collections';
 
-export async function getAllCollections(): Promise<Collection[]> {
+function applyVisibilityFilter(query: any, userId?: string) {
+	if (userId) {
+		query = query.or(`visibility.eq.public,created_by.eq.${userId}`);
+	} else {
+		query = query.eq('visibility', 'public');
+	}
+	return query;
+}
+
+export async function getAllCollections(userId?: string): Promise<Collection[]> {
 	const supabase = getSupabaseClient();
 
-	const { data, error } = await supabase
+	let query = supabase
 		.from(TABLE_NAME)
-		.select('*')
-		.order('created_at', { ascending: false });
+		.select('*');
+
+	query = applyVisibilityFilter(query, userId);
+
+	const { data, error } = await query.order('created_at', { ascending: false });
 
 	if (error) {
 		throw new Error(`Failed to fetch collections: ${error.message}`);
@@ -18,14 +30,17 @@ export async function getAllCollections(): Promise<Collection[]> {
 	return data || [];
 }
 
-export async function getCollectionById(id: string): Promise<Collection | null> {
+export async function getCollectionById(id: string, userId?: string): Promise<Collection | null> {
 	const supabase = getSupabaseClient();
 
-	const { data, error } = await supabase
+	let query = supabase
 		.from(TABLE_NAME)
 		.select('*')
-		.eq('id', id)
-		.single();
+		.eq('id', id);
+
+	query = applyVisibilityFilter(query, userId);
+
+	const { data, error } = await query.single();
 
 	if (error) {
 		if (error.code === 'PGRST116') {

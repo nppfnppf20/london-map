@@ -13,6 +13,17 @@ import type {
 const TABLE_NAME = 'places';
 const PLACE_SELECT = '*, place_collections(collection_id, collections(*)), place_images(*)';
 
+function applyVisibilityFilter(query: any, userId?: string) {
+	if (userId) {
+		// Logged in: see public + own content
+		query = query.or(`visibility.eq.public,created_by.eq.${userId}`);
+	} else {
+		// Anonymous: public only
+		query = query.eq('visibility', 'public');
+	}
+	return query;
+}
+
 type PlaceRow = Place & {
 	place_collections?: { collections: Collection | null }[];
 	place_images?: PlaceImage[];
@@ -30,7 +41,7 @@ function transformPlace(place: PlaceRow): Place {
 	return { ...rest, collections, images };
 }
 
-export async function getAllPlaces(category?: Category): Promise<Place[]> {
+export async function getAllPlaces(category?: Category, userId?: string): Promise<Place[]> {
 	const supabase = getSupabaseClient();
 
 	let query = supabase
@@ -41,6 +52,8 @@ export async function getAllPlaces(category?: Category): Promise<Place[]> {
 		query = query.eq('category', category);
 	}
 
+	query = applyVisibilityFilter(query, userId);
+
 	const { data, error } = await query.order('created_at', { ascending: false });
 
 	if (error) {
@@ -50,14 +63,17 @@ export async function getAllPlaces(category?: Category): Promise<Place[]> {
 	return (data || []).map(place => transformPlace(place as PlaceRow));
 }
 
-export async function getPlaceById(id: string): Promise<Place | null> {
+export async function getPlaceById(id: string, userId?: string): Promise<Place | null> {
 	const supabase = getSupabaseClient();
 
-	const { data, error } = await supabase
+	let query = supabase
 		.from(TABLE_NAME)
 		.select(PLACE_SELECT)
-		.eq('id', id)
-		.single();
+		.eq('id', id);
+
+	query = applyVisibilityFilter(query, userId);
+
+	const { data, error } = await query.single();
 
 	if (error) {
 		if (error.code === 'PGRST116') {

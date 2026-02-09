@@ -2,16 +2,16 @@ import { Router } from 'express';
 import multer from 'multer';
 import * as placesController from '../controllers/places.js';
 import * as placeImagesController from '../controllers/place-images.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const router = Router();
 
-router.get('/', placesController.getAll);
-router.get('/nearby', placesController.getNearby);
-router.post('/along-route', placesController.getAlongRoute);
-router.get('/:id', placesController.getById);
+router.get('/', optionalAuth, placesController.getAll);
+router.get('/nearby', optionalAuth, placesController.getNearby);
+router.post('/along-route', optionalAuth, placesController.getAlongRoute);
+router.get('/:id', optionalAuth, placesController.getById);
 router.post('/', requireAuth, placesController.create);
 router.put('/:id', requireAuth, placesController.update);
 router.post('/:id/collections', requireAuth, placesController.addCollections);
