@@ -180,7 +180,7 @@ let locationError = $state<string | null>(null);
 			</div>
 
 			<div class="content">
-				<PlaceImageGallery />
+				<PlaceImageGallery audioPath={place.audio_path} />
 				{#if place.description}
 					<div class="description">
 						{#each place.description.split('\n\n') as paragraph}

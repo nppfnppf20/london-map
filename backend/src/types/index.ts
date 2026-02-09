@@ -14,6 +14,7 @@ export interface Place {
 	route: string | null;
 	route_stop: number | null;
 	tags: string[];
+	audio_path: string | null;
 	created_at: string;
 	updated_at: string;
 	collections?: Collection[];

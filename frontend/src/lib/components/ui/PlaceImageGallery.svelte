@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 
+	interface Props {
+		audioPath?: string | null;
+	}
+
+	let { audioPath = null }: Props = $props();
+
 	type PlaceholderImage = {
 		id: string;
 		label: string;
@@ -16,6 +22,37 @@
 	let viewerOpen = $state(false);
 	let activeIndex = $state(0);
 	let trackEl: HTMLDivElement | null = null;
+
+	let audioEl: HTMLAudioElement | null = null;
+	let isPlaying = $state(false);
+
+	function toggleAudio() {
+		if (!audioPath) return;
+
+		if (!audioEl) {
+			audioEl = new Audio(audioPath);
+			audioEl.addEventListener('ended', () => {
+				isPlaying = false;
+			});
+		}
+
+		if (isPlaying) {
+			audioEl.pause();
+			isPlaying = false;
+		} else {
+			audioEl.play();
+			isPlaying = true;
+		}
+	}
+
+	$effect(() => {
+		return () => {
+			if (audioEl) {
+				audioEl.pause();
+				audioEl = null;
+			}
+		};
+	});
 
 	function openViewer(index: number) {
 		activeIndex = index;
@@ -63,15 +100,20 @@
 		<span class="gallery-title">Photos</span>
 		<span class="gallery-subtitle">Tap to view</span>
 	</div>
-	<div class="audio-row">
-		<button class="audio-play" type="button" aria-label="Play audio (coming soon)" disabled>
-			<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-				<path d="M8 5v14l11-7z"/>
-			</svg>
-		</button>
-		<span class="audio-label">Play audio</span>
-		<span class="audio-contributor">by Alice Chen</span>
-	</div>
+	{#if audioPath}
+		<div class="audio-row">
+			<button class="audio-play" class:playing={isPlaying} type="button" aria-label={isPlaying ? 'Pause audio' : 'Play audio'} onclick={toggleAudio}>
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+					{#if isPlaying}
+						<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+					{:else}
+						<path d="M8 5v14l11-7z"/>
+					{/if}
+				</svg>
+			</button>
+			<span class="audio-label">{isPlaying ? 'Playing…' : 'Play audio'}</span>
+		</div>
+	{/if}
 	<div class="thumbnails">
 		{#each images as image, index}
 			<button class="thumb" type="button" onclick={() => openViewer(index)}>
@@ -161,8 +203,10 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.audio-play:disabled {
-		opacity: 0.7;
+	.audio-play.playing {
+		background: #1d4ed8;
+		color: white;
+		border-color: #1d4ed8;
 	}
 
 	.audio-label {
