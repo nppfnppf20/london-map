@@ -150,7 +150,12 @@ export const placeImagesApi = {
 			body: formData
 		});
 
-		const result = await response.json();
+		const raw = await response.text();
+		if (!response.ok) {
+			throw new Error(`Upload failed (${response.status}): ${raw.slice(0, 200)}`);
+		}
+
+		const result = JSON.parse(raw);
 		if (result.error) throw new Error(result.error);
 		return result.data;
 	},

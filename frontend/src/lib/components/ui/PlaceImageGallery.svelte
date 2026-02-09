@@ -11,13 +11,11 @@
 
 	let { audioPath = null, images = [], placeId = null }: Props = $props();
 
-	let allImages = $state<PlaceImage[]>([]);
+	let extraImages = $state<PlaceImage[]>([]);
+	let allImages = $derived([...images, ...extraImages]);
 	let fileInput: HTMLInputElement | null = null;
 	let uploading = $state(false);
-
-	$effect(() => {
-		allImages = [...images];
-	});
+	let uploadError = $state<string | null>(null);
 
 	let viewerOpen = $state(false);
 	let activeIndex = $state(0);
@@ -107,10 +105,12 @@
 		if (!file || !placeId) return;
 
 		uploading = true;
+		uploadError = null;
 		try {
 			const newImage = await placeImagesApi.upload(placeId, file);
-			allImages = [...allImages, newImage];
+			extraImages = [...extraImages, newImage];
 		} catch (err) {
+			uploadError = err instanceof Error ? err.message : 'Upload failed';
 			console.error('Failed to upload image:', err);
 		} finally {
 			uploading = false;
@@ -213,6 +213,9 @@
 				/>
 			{/if}
 		</div>
+		{#if uploadError}
+			<p class="upload-error">{uploadError}</p>
+		{/if}
 	{/if}
 </div>
 
@@ -396,6 +399,12 @@
 	.add-icon.uploading {
 		font-size: 18px;
 		color: #6b7280;
+	}
+
+	.upload-error {
+		margin: var(--spacing-xs) 0 0 0;
+		font-size: 12px;
+		color: #ef4444;
 	}
 
 	.file-input-hidden {
