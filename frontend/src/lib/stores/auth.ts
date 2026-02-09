@@ -1,6 +1,22 @@
 import { writable, get } from 'svelte/store';
 import { supabase } from '$services/supabase';
-import type { AuthState } from '$types';
+import type { AuthState, Role } from '$types';
+
+async function fetchRole(): Promise<Role | undefined> {
+	try {
+		const { data: { session } } = await supabase.auth.getSession();
+		if (!session) return undefined;
+		const res = await fetch(
+			`${import.meta.env.PUBLIC_API_URL || 'http://localhost:3001/api'}/profiles/me`,
+			{ headers: { Authorization: `Bearer ${session.access_token}` } }
+		);
+		if (!res.ok) return undefined;
+		const json = await res.json();
+		return json.data?.role;
+	} catch {
+		return undefined;
+	}
+}
 
 function createAuthStore() {
 	const { subscribe, set, update } = writable<AuthState>({
@@ -9,6 +25,18 @@ function createAuthStore() {
 		loading: true
 	});
 
+	async function setSessionAndRole(session: { user: { id: string; email?: string | null }; access_token: string }) {
+		set({
+			user: { id: session.user.id, email: session.user.email! },
+			session: { access_token: session.access_token },
+			loading: false
+		});
+		const role = await fetchRole();
+		if (role) {
+			update(state => state.user ? { ...state, user: { ...state.user, role } } : state);
+		}
+	}
+
 	return {
 		subscribe,
 
@@ -16,22 +44,14 @@ function createAuthStore() {
 			const { data: { session } } = await supabase.auth.getSession();
 
 			if (session) {
-				set({
-					user: { id: session.user.id, email: session.user.email! },
-					session: { access_token: session.access_token },
-					loading: false
-				});
+				await setSessionAndRole(session);
 			} else {
 				set({ user: null, session: null, loading: false });
 			}
 
 			supabase.auth.onAuthStateChange((_event, session) => {
 				if (session) {
-					set({
-						user: { id: session.user.id, email: session.user.email! },
-						session: { access_token: session.access_token },
-						loading: false
-					});
+					setSessionAndRole(session);
 				} else {
 					set({ user: null, session: null, loading: false });
 				}

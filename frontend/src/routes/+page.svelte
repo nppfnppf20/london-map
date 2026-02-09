@@ -15,6 +15,7 @@
 	import AuthModal from '$components/ui/AuthModal.svelte';
 	import MenuNav from '$components/ui/MenuNav.svelte';
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
+	import { shareLinksApi } from '$services/api';
 	import { placesStore } from '$stores/places';
 	import { collectionsStore } from '$stores/collections';
 	import { routesStore } from '$stores/routes';
@@ -26,6 +27,7 @@
 	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
 	import { layerStore } from '$stores/layers';
 	import { authStore } from '$stores/auth';
+	import { shareStore } from '$stores/share';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 	import { goto } from '$app/navigation';
 
@@ -45,6 +47,9 @@
 	let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
 		new Set(['Public'])
 	);
+	let shareModalOpen = $state(false);
+	let shareUrl = $state('');
+	let shareCopied = $state(false);
 
 	function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
 		const next = new Set(filterScopes);
@@ -136,6 +141,25 @@
 			nearbyModalOpen = true;
 		}
 		pinAction = null;
+	}
+
+	async function shareCollection(collectionId: string, collectionName: string) {
+		try {
+			const link = await shareLinksApi.create({
+				name: collectionName,
+				collection_ids: [collectionId]
+			});
+			shareUrl = `${window.location.origin}/share/${link.token}`;
+			shareCopied = false;
+			shareModalOpen = true;
+		} catch (err) {
+			// silently fail
+		}
+	}
+
+	function copyShareUrl() {
+		navigator.clipboard.writeText(shareUrl);
+		shareCopied = true;
 	}
 
 	function closeMenus() {
@@ -258,6 +282,16 @@
 				/>
 			{:else}
 				<div class="menu-grip" aria-hidden="true"></div>
+				{#if $shareStore.active}
+					<div class="share-banner">
+						<span class="share-banner-text">Shared: {$shareStore.name}</span>
+						<button class="share-banner-clear" onclick={() => { shareStore.clear(); placesStore.fetchAll(); collectionsStore.fetchAll(); }}>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M18 6L6 18M6 6l12 12"/>
+							</svg>
+						</button>
+					</div>
+				{/if}
 				<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
 				<div class="menu-divider ui-divider" aria-hidden="true"></div>
 				<div class="filter-row ui-chip-row" aria-label="Filter scope">
@@ -348,6 +382,19 @@
 											<p class="menu-item-meta ui-meta">{collection.description}</p>
 										{/if}
 									</div>
+									{#if $authStore.user && $authStore.user.role === 'admin'}
+										<button
+											class="share-icon-btn"
+											type="button"
+											aria-label="Share {collection.name}"
+											onclick={(e) => { e.stopPropagation(); shareCollection(collection.id, collection.name); }}
+										>
+											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+												<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+												<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+											</svg>
+										</button>
+									{/if}
 								</button>
 							{/each}
 						{/if}
@@ -564,6 +611,21 @@
 	/>
 	<CreateRouteModal open={routeModalOpen} onClose={() => routeModalOpen = false} />
 	<AuthModal open={authModalOpen} onClose={() => authModalOpen = false} />
+
+	{#if shareModalOpen}
+		<div class="share-modal-backdrop" onclick={() => shareModalOpen = false}>
+			<div class="share-modal" onclick={(e) => e.stopPropagation()}>
+				<h3 class="share-modal-title">Share Link</h3>
+				<div class="share-modal-url">
+					<input type="text" readonly value={shareUrl} class="share-modal-input" />
+					<button class="share-modal-copy" onclick={copyShareUrl}>
+						{shareCopied ? 'Copied!' : 'Copy'}
+					</button>
+				</div>
+				<button class="share-modal-close" onclick={() => shareModalOpen = false}>Done</button>
+			</div>
+		</div>
+	{/if}
 </main>
 
 <style>
@@ -906,5 +968,124 @@
 		position: relative;
 	}
 
+	.share-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 12px;
+		background: #eef2ff;
+		border: 1px solid #c7d2fe;
+		border-radius: var(--radius-md);
+	}
+
+	.share-banner-text {
+		flex: 1;
+		font-size: 13px;
+		font-weight: 600;
+		color: #4338ca;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.share-banner-clear {
+		flex-shrink: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: transparent;
+		color: #6366f1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.share-banner-clear:active {
+		background: #c7d2fe;
+	}
+
+	.share-icon-btn {
+		flex-shrink: 0;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: #f3f4f6;
+		color: #6b7280;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.share-icon-btn:active {
+		background: #e5e7eb;
+	}
+
+	.share-modal-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 2000;
+		background: rgba(0, 0, 0, 0.4);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+	}
+
+	.share-modal {
+		background: white;
+		border-radius: 16px;
+		padding: 24px;
+		max-width: 400px;
+		width: 100%;
+		box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+	}
+
+	.share-modal-title {
+		margin: 0 0 16px;
+		font-size: 18px;
+		font-weight: 700;
+		color: #0f172a;
+	}
+
+	.share-modal-url {
+		display: flex;
+		gap: 8px;
+		margin-bottom: 16px;
+	}
+
+	.share-modal-input {
+		flex: 1;
+		padding: 10px 12px;
+		border: 1px solid #d1d5db;
+		border-radius: 8px;
+		font-size: 13px;
+		color: #374151;
+		background: #f9fafb;
+		min-width: 0;
+	}
+
+	.share-modal-copy {
+		padding: 10px 16px;
+		border-radius: 8px;
+		background: var(--color-highlight, #6366f1);
+		color: white;
+		font-size: 13px;
+		font-weight: 600;
+		white-space: nowrap;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.share-modal-close {
+		width: 100%;
+		padding: 12px;
+		border-radius: 8px;
+		background: #f3f4f6;
+		color: #374151;
+		font-size: 14px;
+		font-weight: 600;
+		-webkit-tap-highlight-color: transparent;
+	}
 
 </style>

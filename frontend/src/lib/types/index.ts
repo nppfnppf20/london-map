@@ -137,8 +137,26 @@ export interface Profile {
 	created_at: string;
 }
 
+export interface ShareLink {
+	id: string;
+	token: string;
+	name: string;
+	place_ids: string[];
+	collection_ids: string[];
+	route_ids: string[];
+	created_by: string;
+	created_at: string;
+}
+
+export interface ResolvedShareLink {
+	name: string;
+	places: Place[];
+	collections: Collection[];
+	routes: Route[];
+}
+
 export interface AuthState {
-	user: { id: string; email: string } | null;
+	user: { id: string; email: string; role?: Role } | null;
 	session: { access_token: string } | null;
 	loading: boolean;
 }

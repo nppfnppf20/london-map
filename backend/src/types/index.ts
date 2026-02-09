@@ -119,6 +119,31 @@ export interface UpdateCollectionDto {
 	color?: string | null;
 }
 
+export interface ShareLink {
+	id: string;
+	token: string;
+	name: string;
+	place_ids: string[];
+	collection_ids: string[];
+	route_ids: string[];
+	created_by: string;
+	created_at: string;
+}
+
+export interface CreateShareLinkDto {
+	name: string;
+	place_ids?: string[];
+	collection_ids?: string[];
+	route_ids?: string[];
+}
+
+export interface ResolvedShareLink {
+	name: string;
+	places: Place[];
+	collections: Collection[];
+	routes: Route[];
+}
+
 export interface ApiResponse<T> {
 	data: T | null;
 	error: string | null;

@@ -10,7 +10,9 @@ import type {
 	DirectionsParams,
 	MultiStopParams,
 	DirectionsResult,
-	Profile
+	Profile,
+	ShareLink,
+	ResolvedShareLink
 } from '$types';
 import { supabase } from '$services/supabase';
 
@@ -249,6 +251,29 @@ export const routingApi = {
 		return request<DirectionsResult>('/routing/multi-stop', {
 			method: 'POST',
 			body: JSON.stringify(params)
+		});
+	}
+};
+
+export const shareLinksApi = {
+	create: (data: { name: string; place_ids?: string[]; collection_ids?: string[]; route_ids?: string[] }): Promise<ShareLink> => {
+		return request<ShareLink>('/share-links', {
+			method: 'POST',
+			body: JSON.stringify(data)
+		});
+	},
+
+	resolve: (token: string): Promise<ResolvedShareLink> => {
+		return request<ResolvedShareLink>(`/share-links/${token}`);
+	},
+
+	getAll: (): Promise<ShareLink[]> => {
+		return request<ShareLink[]>('/share-links');
+	},
+
+	delete: (id: string): Promise<void> => {
+		return request<void>(`/share-links/${id}`, {
+			method: 'DELETE'
 		});
 	}
 };
