@@ -125,7 +125,7 @@ export interface ShareLink {
 	name: string;
 	place_ids: string[];
 	collection_ids: string[];
-	route_ids: string[];
+	route_names: string[];
 	created_by: string;
 	created_at: string;
 }
@@ -134,14 +134,14 @@ export interface CreateShareLinkDto {
 	name: string;
 	place_ids?: string[];
 	collection_ids?: string[];
-	route_ids?: string[];
+	route_names?: string[];
 }
 
 export interface ResolvedShareLink {
 	name: string;
 	places: Place[];
 	collections: Collection[];
-	routes: Route[];
+	route_names: string[];
 }
 
 export interface ApiResponse<T> {

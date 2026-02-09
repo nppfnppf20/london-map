@@ -16,7 +16,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 			return;
 		}
 
-		const hasResources = (dto.place_ids?.length || 0) + (dto.collection_ids?.length || 0) + (dto.route_ids?.length || 0);
+		const hasResources = (dto.place_ids?.length || 0) + (dto.collection_ids?.length || 0) + (dto.route_names?.length || 0);
 		if (!hasResources) {
 			res.status(400).json({ data: null, error: 'Must include at least one place, collection, or route' });
 			return;

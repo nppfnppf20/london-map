@@ -12,7 +12,7 @@ export async function createShareLink(dto: CreateShareLinkDto, userId: string): 
 			name: dto.name,
 			place_ids: dto.place_ids || [],
 			collection_ids: dto.collection_ids || [],
-			route_ids: dto.route_ids || [],
+			route_names: dto.route_names || [],
 			created_by: userId
 		})
 		.select()
@@ -43,7 +43,7 @@ export async function resolveShareLink(token: string): Promise<ResolvedShareLink
 		name: link.name,
 		places: [],
 		collections: [],
-		routes: []
+		route_names: link.route_names || []
 	};
 
 	if (link.place_ids?.length) {
@@ -79,12 +79,22 @@ export async function resolveShareLink(token: string): Promise<ResolvedShareLink
 		}
 	}
 
-	if (link.route_ids?.length) {
-		const { data: routes } = await supabase
-			.from('routes')
-			.select('*')
-			.in('id', link.route_ids);
-		result.routes = routes || [];
+	if (link.route_names?.length) {
+		// Fetch places that belong to the shared routes
+		const { data: routePlaces } = await supabase
+			.from('places')
+			.select('*, place_images(*)')
+			.in('route', link.route_names);
+
+		if (routePlaces) {
+			const placeMap = new Map(result.places.map(p => [p.id, p]));
+			for (const place of routePlaces) {
+				if (!placeMap.has(place.id)) {
+					placeMap.set(place.id, place);
+					result.places.push(place);
+				}
+			}
+		}
 	}
 
 	return result;

@@ -256,7 +256,7 @@ export const routingApi = {
 };
 
 export const shareLinksApi = {
-	create: (data: { name: string; place_ids?: string[]; collection_ids?: string[]; route_ids?: string[] }): Promise<ShareLink> => {
+	create: (data: { name: string; place_ids?: string[]; collection_ids?: string[]; route_names?: string[] }): Promise<ShareLink> => {
 		return request<ShareLink>('/share-links', {
 			method: 'POST',
 			body: JSON.stringify(data)

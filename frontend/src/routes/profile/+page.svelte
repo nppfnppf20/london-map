@@ -132,6 +132,9 @@
 			{/if}
 
 			<div class="actions">
+				{#if profile.role === 'admin'}
+					<button class="admin-btn" onclick={() => goto('/admin')}>Admin</button>
+				{/if}
 				<button class="signout-btn" onclick={handleSignOut}>Sign Out</button>
 			</div>
 		</div>
@@ -334,6 +337,22 @@
 	.actions {
 		margin-top: auto;
 		padding-bottom: env(safe-area-inset-bottom, 0px);
+	}
+
+	.admin-btn {
+		width: 100%;
+		padding: 14px;
+		border-radius: var(--radius-md);
+		background: var(--color-highlight);
+		color: white;
+		font-size: 15px;
+		font-weight: 600;
+		-webkit-tap-highlight-color: transparent;
+		margin-bottom: 8px;
+	}
+
+	.admin-btn:active {
+		opacity: 0.9;
 	}
 
 	.signout-btn {
