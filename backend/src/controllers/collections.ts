@@ -51,6 +51,12 @@ export async function update(req: Request, res: Response): Promise<void> {
 		const { id } = req.params;
 		const dto: UpdateCollectionDto = req.body;
 
+		const owner = await collectionsService.getCollectionOwner(id);
+		if (owner && owner !== req.user!.id && req.user!.role !== 'admin') {
+			res.status(403).json({ data: null, error: 'Not authorised to edit this collection' });
+			return;
+		}
+
 		const collection = await collectionsService.updateCollection(id, dto);
 
 		if (!collection) {
@@ -68,6 +74,13 @@ export async function update(req: Request, res: Response): Promise<void> {
 export async function remove(req: Request, res: Response): Promise<void> {
 	try {
 		const { id } = req.params;
+
+		const owner = await collectionsService.getCollectionOwner(id);
+		if (owner && owner !== req.user!.id && req.user!.role !== 'admin') {
+			res.status(403).json({ data: null, error: 'Not authorised to delete this collection' });
+			return;
+		}
+
 		await collectionsService.deleteCollection(id);
 		res.status(204).send();
 	} catch (error) {

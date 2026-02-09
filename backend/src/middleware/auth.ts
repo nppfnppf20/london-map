@@ -1,5 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { getSupabaseClient } from '../services/supabase.js';
+import type { Role } from '../types/index.js';
+
+async function getUserRole(userId: string): Promise<Role> {
+	const supabase = getSupabaseClient();
+	const { data } = await supabase
+		.from('profiles')
+		.select('role')
+		.eq('id', userId)
+		.single();
+	return (data?.role as Role) || 'user';
+}
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
 	const authHeader = req.headers.authorization;
@@ -20,7 +31,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 			return;
 		}
 
-		req.user = { id: user.id, email: user.email! };
+		const role = await getUserRole(user.id);
+		req.user = { id: user.id, email: user.email!, role };
 		next();
 	} catch {
 		res.status(401).json({ data: null, error: 'Authentication failed' });
@@ -42,7 +54,8 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
 		const { data: { user }, error } = await supabase.auth.getUser(token);
 
 		if (!error && user) {
-			req.user = { id: user.id, email: user.email! };
+			const role = await getUserRole(user.id);
+			req.user = { id: user.id, email: user.email!, role };
 		}
 	} catch {
 		// Silently continue without auth

@@ -137,6 +137,7 @@ export interface Profile {
 export interface AuthUser {
 	id: string;
 	email: string;
+	role: Role;
 }
 
 declare global {

@@ -71,6 +71,12 @@ export async function update(req: Request, res: Response): Promise<void> {
 		const { id } = req.params;
 		const dto: UpdatePlaceDto = req.body;
 
+		const owner = await placesService.getPlaceOwner(id);
+		if (owner && owner !== req.user!.id && req.user!.role !== 'admin') {
+			res.status(403).json({ data: null, error: 'Not authorised to edit this place' });
+			return;
+		}
+
 		const place = await placesService.updatePlace(id, dto);
 
 		if (!place) {
@@ -105,6 +111,13 @@ export async function addCollections(req: Request, res: Response): Promise<void>
 export async function remove(req: Request, res: Response): Promise<void> {
 	try {
 		const { id } = req.params;
+
+		const owner = await placesService.getPlaceOwner(id);
+		if (owner && owner !== req.user!.id && req.user!.role !== 'admin') {
+			res.status(403).json({ data: null, error: 'Not authorised to delete this place' });
+			return;
+		}
+
 		await placesService.deletePlace(id);
 		res.status(204).send();
 	} catch (error) {

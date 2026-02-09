@@ -43,6 +43,13 @@ export async function getImages(req: Request, res: Response): Promise<void> {
 export async function deleteImage(req: Request, res: Response): Promise<void> {
 	try {
 		const { imageId } = req.params;
+
+		const owner = await placeImagesService.getImageOwner(imageId);
+		if (owner && owner !== req.user!.id && req.user!.role !== 'admin') {
+			res.status(403).json({ data: null, error: 'Not authorised to delete this image' });
+			return;
+		}
+
 		await placeImagesService.deleteImage(imageId);
 		res.status(204).send();
 	} catch (error) {

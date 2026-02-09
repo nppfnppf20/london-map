@@ -58,6 +58,16 @@ export async function createCollection(dto: CreateCollectionDto, userId: string)
 	return data;
 }
 
+export async function getCollectionOwner(id: string): Promise<string | null> {
+	const supabase = getSupabaseClient();
+	const { data } = await supabase
+		.from(TABLE_NAME)
+		.select('created_by')
+		.eq('id', id)
+		.single();
+	return data?.created_by || null;
+}
+
 export async function updateCollection(id: string, dto: UpdateCollectionDto): Promise<Collection | null> {
 	const supabase = getSupabaseClient();
 

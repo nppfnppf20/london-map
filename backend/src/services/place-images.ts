@@ -51,6 +51,16 @@ export async function addImage(
 	return data;
 }
 
+export async function getImageOwner(imageId: string): Promise<string | null> {
+	const supabase = getSupabaseClient();
+	const { data } = await supabase
+		.from(TABLE_NAME)
+		.select('created_by')
+		.eq('id', imageId)
+		.single();
+	return data?.created_by || null;
+}
+
 export async function getImagesForPlace(placeId: string): Promise<PlaceImage[]> {
 	const supabase = getSupabaseClient();
 
