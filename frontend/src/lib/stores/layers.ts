@@ -94,6 +94,34 @@ function createLayerStore() {
 				routes: buildRouteToggles(),
 				collections: buildCollectionToggles()
 			})),
+		showAllCollections: () => {
+			const { collections } = get(collectionsStore);
+			const allOn: Record<string, boolean> = {};
+			for (const c of collections) {
+				allOn[c.id] = true;
+			}
+			update(state => ({
+				...state,
+				viewMode: 'collections',
+				sites: { history: false, architecture: false, food: false, pub: false },
+				routes: buildRouteToggles(),
+				collections: allOn
+			}));
+		},
+		showAllRoutes: () => {
+			const routes = get(routesStore);
+			const allOn: Record<string, boolean> = {};
+			for (const name of Object.keys(routes)) {
+				allOn[name] = true;
+			}
+			update(state => ({
+				...state,
+				viewMode: 'routes',
+				sites: { history: false, architecture: false, food: false, pub: false },
+				routes: allOn,
+				collections: buildCollectionToggles()
+			}));
+		},
 		toggleSite: (category: Category) => update(state => ({
 			...state,
 			sites: { ...state.sites, [category]: !state.sites[category] }

@@ -12,6 +12,18 @@
 	import type L from 'leaflet';
 	import type { Place, LayerState } from '$types';
 
+	const COLLECTION_FALLBACK_COLOR = '#94a3b8';
+
+	function getCollectionColor(place: Place, layers: LayerState): string {
+		if (!place.collections || place.collections.length === 0) return COLLECTION_FALLBACK_COLOR;
+		for (const collection of place.collections) {
+			if (layers.collections[collection.id]) {
+				return collection.color || COLLECTION_FALLBACK_COLOR;
+			}
+		}
+		return COLLECTION_FALLBACK_COLOR;
+	}
+
 	let mapContainer: HTMLDivElement;
 	let map: L.Map | null = null;
 	let leaflet: typeof L;
@@ -142,7 +154,7 @@
 		isDrawingStroke = false;
 	}
 
-	function createIcon(place: Place, mode: 'route' | 'site') {
+	function createIcon(place: Place, mode: 'route' | 'site', colorOverride?: string) {
 		if (mode === 'route') {
 			const color = getRouteColor(place.route);
 			const isSite = place.priority === 'site';
@@ -209,8 +221,8 @@
 			});
 		}
 
-		// Site mode — category colour, no badge
-		const color = getCategoryColor(place.category);
+		// Site mode — category colour (or override), no badge
+		const color = colorOverride || getCategoryColor(place.category);
 		const isSite = place.priority === 'site';
 
 		if (isSite) {
@@ -320,13 +332,15 @@
 
 		const layers = $layerStore;
 		const mode = getDisplayMode(place, layers);
+		const collectionColor = layers.viewMode === 'collections' && mode !== 'hidden'
+			? getCollectionColor(place, layers) : undefined;
 
 		if (markers.has(place.id)) {
 			const existing = markers.get(place.id)!;
 			if (mode === 'hidden') {
 				if (map.hasLayer(existing)) existing.remove();
 			} else {
-				existing.setIcon(createIcon(place, mode));
+				existing.setIcon(createIcon(place, mode, collectionColor));
 				if (!map.hasLayer(existing)) existing.addTo(map);
 			}
 			return;
@@ -334,7 +348,7 @@
 
 		// First time — create the marker
 		const marker = leaflet.marker([place.latitude, place.longitude], {
-			icon: createIcon(place, mode === 'hidden' ? 'site' : mode),
+			icon: createIcon(place, mode === 'hidden' ? 'site' : mode, collectionColor),
 			zIndexOffset: place.priority === 'site' ? 1000 : 0
 		});
 
@@ -360,7 +374,9 @@
 			if (mode === 'hidden') {
 				if (map!.hasLayer(marker)) marker.remove();
 			} else {
-				marker.setIcon(createIcon(place, mode));
+				const collectionColor = layers.viewMode === 'collections'
+					? getCollectionColor(place, layers) : undefined;
+				marker.setIcon(createIcon(place, mode, collectionColor));
 				if (!map!.hasLayer(marker)) marker.addTo(map!);
 			}
 		});

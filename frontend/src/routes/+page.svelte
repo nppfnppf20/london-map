@@ -16,12 +16,14 @@
 	import MenuNav from '$components/ui/MenuNav.svelte';
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
 	import { placesStore } from '$stores/places';
+	import { collectionsStore } from '$stores/collections';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { routeSearchStore } from '$stores/routeSearch';
 	import { nearbyStore } from '$stores/nearby';
 	import { directionsStore, formatDuration, formatDistance } from '$stores/directions';
+	import { layerStore } from '$stores/layers';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 
 	let authModalOpen = $state(false);
@@ -56,6 +58,7 @@
 
 	$effect(() => {
 		placesStore.fetchAll();
+		collectionsStore.fetchAll();
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(pos) => {
@@ -64,6 +67,16 @@
 				() => {},
 				{ maximumAge: 60000, timeout: 5000 }
 			);
+		}
+	});
+
+	$effect(() => {
+		if (menuTab === 'Places') {
+			layerStore.showAllSites();
+		} else if (menuTab === 'Lists') {
+			layerStore.showAllCollections();
+		} else if (menuTab === 'Tours') {
+			layerStore.showAllRoutes();
 		}
 	});
 
@@ -304,24 +317,37 @@
 							{/each}
 						{/if}
 					{:else if menuTab === 'Lists'}
-						<div class="menu-item-card ui-card">
-							<div class="menu-item-main">
-								<p class="menu-item-name">John Voyage Pubs</p>
-								<p class="menu-item-meta ui-meta">By Sam Baker</p>
-							</div>
-						</div>
-						<div class="menu-item-card ui-card">
-							<div class="menu-item-main">
-								<p class="menu-item-name">The Shamans Pubs</p>
-								<p class="menu-item-meta ui-meta">By Jack Shearman</p>
-							</div>
-						</div>
-						<div class="menu-item-card ui-card">
-							<div class="menu-item-main">
-								<p class="menu-item-name">Restaurants</p>
-								<p class="menu-item-meta ui-meta">By Stan</p>
-							</div>
-						</div>
+						{#if $collectionsStore.loading}
+							<div class="menu-item-placeholder"></div>
+							<div class="menu-item-placeholder"></div>
+							<div class="menu-item-placeholder"></div>
+						{:else if $collectionsStore.collections.length === 0}
+							<p class="menu-empty ui-meta">No collections yet.</p>
+						{:else}
+							{#each $collectionsStore.collections as collection}
+								<button
+									class="menu-item-card ui-card menu-item-toggle"
+									class:active={$layerStore.collections[collection.id]}
+									type="button"
+									onclick={() => layerStore.toggleCollection(collection.id)}
+								>
+									<span
+										class="menu-item-check"
+										class:checked={$layerStore.collections[collection.id]}
+										style={$layerStore.collections[collection.id] ? `background:${collection.color || '#94a3b8'}; border-color:${collection.color || '#94a3b8'}` : ''}
+									></span>
+									<div class="menu-item-main">
+										<p class="menu-item-name">
+											<span class="menu-item-dot ui-dot" style={`background:${collection.color || '#94a3b8'}`}></span>
+											{collection.name}
+										</p>
+										{#if collection.description}
+											<p class="menu-item-meta ui-meta">{collection.description}</p>
+										{/if}
+									</div>
+								</button>
+							{/each}
+						{/if}
 					{:else}
 						<div class="menu-item-placeholder"></div>
 						<div class="menu-item-placeholder"></div>
@@ -552,6 +578,7 @@
 	}
 
 	.menu-list {
+		flex: 1;
 		overflow-y: auto;
 		padding-bottom: var(--spacing-md);
 		min-height: 0;
@@ -819,5 +846,27 @@
 	.directions-banner-clear:active {
 		background: #e5e7eb;
 	}
+
+	.menu-item-toggle {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		text-align: left;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.menu-item-check {
+		flex-shrink: 0;
+		width: 20px;
+		height: 20px;
+		border-radius: 6px;
+		border: 2px solid #cbd5e1;
+		background: white;
+		transition: background 0.15s, border-color 0.15s;
+		position: relative;
+	}
+
 
 </style>
