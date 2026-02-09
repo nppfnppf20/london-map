@@ -25,9 +25,14 @@ let collectionsOpen = $state(false);
 
 	$effect(() => {
 		if (open) {
-			location = coords ?? $mapStore.center;
 			collectionsStore.fetchAll();
 			collectionsOpen = false;
+		}
+	});
+
+	$effect(() => {
+		if (open) {
+			location = coords ?? $mapStore.center;
 		}
 	});
 

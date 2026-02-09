@@ -2,6 +2,7 @@
 	import type { Place, TravelProfile } from '$types';
 	import { getCategoryColor, CATEGORY_LABELS } from '$utils/map-helpers';
 	import { directionsStore, formatDuration, formatDistance, getGoogleMapsUrl } from '$stores/directions';
+	import PlaceImageGallery from '$components/ui/PlaceImageGallery.svelte';
 
 interface Props {
 	place: Place | null;
@@ -122,7 +123,6 @@ let locationError = $state<string | null>(null);
 					</p>
 				{/if}
 				<div class="action-buttons">
-					<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
 					{#if !$directionsStore.active || $directionsStore.destination?.lat !== place.latitude}
 						<button
 							class="directions-btn"
@@ -140,6 +140,11 @@ let locationError = $state<string | null>(null);
 							Clear Route
 						</button>
 					{/if}
+				</div>
+				<div class="action-buttons secondary">
+					<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
+					<button class="meta-btn" type="button" disabled>Like</button>
+					<button class="meta-btn" type="button" disabled>Comment</button>
 				</div>
 				{#if locationError}
 					<p class="error-text">{locationError}</p>
@@ -175,6 +180,7 @@ let locationError = $state<string | null>(null);
 			</div>
 
 			<div class="content">
+				<PlaceImageGallery />
 				{#if place.description}
 					<div class="description">
 						{#each place.description.split('\n\n') as paragraph}
@@ -184,6 +190,16 @@ let locationError = $state<string | null>(null);
 				{:else}
 					<p class="no-description">No description available.</p>
 				{/if}
+
+				<div class="comments">
+					<div class="comments-header">
+						<span class="comments-title">Comments</span>
+						<span class="comments-subtitle">Coming soon</span>
+					</div>
+					<div class="comments-placeholder">
+						No comments yet.
+					</div>
+				</div>
 			</div>
 
 			{#if place.tags && place.tags.length > 0}
@@ -275,28 +291,39 @@ let locationError = $state<string | null>(null);
 	}
 
 	.action-buttons {
-		display: flex;
+		display: grid;
+		grid-template-columns: 1fr;
 		gap: var(--spacing-sm);
 		margin-top: var(--spacing-md);
 	}
 
+	.action-buttons.secondary {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		margin-top: var(--spacing-sm);
+	}
+
 	.add-to-btn {
-		padding: 8px 12px;
+		padding: 8px 10px;
 		border-radius: var(--radius-md);
 		background: #111827;
 		color: white;
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 600;
+		width: 100%;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
 		-webkit-tap-highlight-color: transparent;
 	}
 
 	.directions-btn {
-		padding: 8px 12px;
+		padding: 8px 10px;
 		border-radius: var(--radius-md);
 		background: #3b82f6;
 		color: white;
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 600;
+		width: 100%;
 		-webkit-tap-highlight-color: transparent;
 	}
 
@@ -307,6 +334,25 @@ let locationError = $state<string | null>(null);
 
 	.directions-btn.clear {
 		background: #6b7280;
+	}
+
+	.meta-btn {
+		padding: 8px 10px;
+		border-radius: var(--radius-md);
+		background: #f3f4f6;
+		color: #374151;
+		font-size: 12px;
+		font-weight: 600;
+		width: 100%;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.meta-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	.error-text {
@@ -398,6 +444,39 @@ let locationError = $state<string | null>(null);
 	.no-description {
 		color: #9ca3af;
 		font-style: italic;
+	}
+
+	.comments {
+		margin-top: var(--spacing-lg);
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.comments-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+	}
+
+	.comments-title {
+		font-size: 14px;
+		font-weight: 700;
+		color: #111827;
+	}
+
+	.comments-subtitle {
+		font-size: 12px;
+		color: #9ca3af;
+	}
+
+	.comments-placeholder {
+		padding: 10px 12px;
+		border-radius: var(--radius-md);
+		border: 1px solid #e5e7eb;
+		background: #f9fafb;
+		color: #9ca3af;
+		font-size: 13px;
 	}
 
 	.tags {

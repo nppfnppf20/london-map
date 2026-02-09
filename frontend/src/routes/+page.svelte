@@ -15,6 +15,7 @@
 	import AuthModal from '$components/ui/AuthModal.svelte';
 	import MenuNav from '$components/ui/MenuNav.svelte';
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
+	import { placesStore } from '$stores/places';
 	import { mapStore } from '$stores/map';
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
@@ -51,12 +52,32 @@
 	}
 
 	const LONDON_CENTER: [number, number] = [51.5074, -0.1278];
-	const PLACE_ITEMS = [
-		{ name: 'St Pauls Cathedral', category: 'history', lat: 51.5138, lng: -0.0984, contributor: 'Jamie' },
-		{ name: 'Borough Market', category: 'food', lat: 51.5055, lng: -0.0910, contributor: 'Nora' },
-		{ name: 'Somerset House', category: 'architecture', lat: 51.5116, lng: -0.1177, contributor: 'Alex' },
-		{ name: 'The Lamb & Flag', category: 'pub', lat: 51.5144, lng: -0.1256, contributor: 'Priya' }
-	] as const;
+	let userLocation = $state<[number, number]>(LONDON_CENTER);
+
+	$effect(() => {
+		placesStore.fetchAll();
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(pos) => {
+					userLocation = [pos.coords.latitude, pos.coords.longitude];
+				},
+				() => {},
+				{ maximumAge: 60000, timeout: 5000 }
+			);
+		}
+	});
+
+	let nearestPlaces = $derived.by(() => {
+		const places = $placesStore.places;
+		if (!places.length) return [];
+		return [...places]
+			.map(p => ({
+				...p,
+				_dist: distanceMeters(userLocation, [p.latitude, p.longitude])
+			}))
+			.sort((a, b) => a._dist - b._dist)
+			.slice(0, 10);
+	});
 
 	function toRadians(value: number): number {
 		return (value * Math.PI) / 180;
@@ -129,23 +150,17 @@
 
 	function startAddAtCurrentLocation() {
 		plusMenuOpen = false;
-		if (!navigator.geolocation) {
-			startPinMode('add');
-			return;
-		}
+		addModalOpen = true;
 
-		navigator.geolocation.getCurrentPosition(
-			(position) => {
-				const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
-				pinCoords = coords;
-				mapStore.flyTo(coords, 15);
-				addModalOpen = true;
-			},
-			() => {
-				startPinMode('add');
-			},
-			{ enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
-		);
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					pinCoords = [position.coords.latitude, position.coords.longitude];
+				},
+				() => {},
+				{ enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+			);
+		}
 	}
 </script>
 
@@ -265,22 +280,29 @@
 				</div>
 				<div class="menu-list ui-list">
 					{#if menuTab === 'Places'}
-						{#each PLACE_ITEMS as place}
-							<div class="menu-item-card ui-card">
-								<div class="menu-item-main">
-									<p class="menu-item-name">
-										<span class="menu-item-dot ui-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
-										{place.name}
-									</p>
-									<p class="menu-item-meta ui-meta">
-										<span>{CATEGORY_LABELS[place.category]}</span>
-										<span>&middot;</span>
-										<span>{formatDistance(distanceMeters(LONDON_CENTER, [place.lat, place.lng]))}</span>
-									</p>
+						{#if $placesStore.loading}
+							<div class="menu-item-placeholder"></div>
+							<div class="menu-item-placeholder"></div>
+							<div class="menu-item-placeholder"></div>
+						{:else if nearestPlaces.length === 0}
+							<p class="menu-empty ui-meta">No places yet.</p>
+						{:else}
+							{#each nearestPlaces as place}
+								<div class="menu-item-card ui-card">
+									<div class="menu-item-main">
+										<p class="menu-item-name">
+											<span class="menu-item-dot ui-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
+											{place.name}
+										</p>
+										<p class="menu-item-meta ui-meta">
+											<span>{CATEGORY_LABELS[place.category]}</span>
+											<span>&middot;</span>
+											<span>{formatDistance(place._dist)}</span>
+										</p>
+									</div>
 								</div>
-								<p class="menu-item-contrib ui-meta ui-muted">By {place.contributor}</p>
-							</div>
-						{/each}
+							{/each}
+						{/if}
 					{:else if menuTab === 'Lists'}
 						<div class="menu-item-card ui-card">
 							<div class="menu-item-main">
@@ -539,6 +561,12 @@
 		height: 56px;
 		border-radius: 16px;
 		background: #f3f4f6;
+	}
+
+	.menu-empty {
+		text-align: center;
+		padding: var(--spacing-lg);
+		color: #9ca3af;
 	}
 
 	.menu-item-main {
