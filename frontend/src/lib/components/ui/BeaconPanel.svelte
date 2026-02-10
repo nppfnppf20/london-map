@@ -18,7 +18,16 @@
 	const beaconPlaces = $derived(
 		$placesStore.places.filter(p => $beaconStore.placeIds.includes(p.id))
 	);
-	const travelTimes = $derived($beaconStore.travelTimes);
+	const strategies = $derived($beaconStore.strategies);
+	const activeStrategy = $derived($beaconStore.activeStrategy);
+	const currentStrategy = $derived(strategies ? strategies[activeStrategy] : null);
+	const travelTimes = $derived(currentStrategy?.travelTimes ?? []);
+	const strategiesDiffer = $derived(
+		strategies
+			? strategies.lowestTotal.midpoint.lat !== strategies.fairest.midpoint.lat
+			  || strategies.lowestTotal.midpoint.lng !== strategies.fairest.midpoint.lng
+			: false
+	);
 
 	function useCurrentLocation() {
 		if (!joinName.trim()) return;
@@ -92,6 +101,20 @@
 		</div>
 		<p class="beacon-answered-category">{beacon.creator_name} is looking for {categoryNames}</p>
 		{#if travelTimes.length > 0}
+			{#if strategiesDiffer}
+				<div class="beacon-strategy-toggle">
+					<button
+						class="strategy-btn"
+						class:active={activeStrategy === 'fairest'}
+						onclick={() => beaconStore.setStrategy('fairest')}
+					>Fairest</button>
+					<button
+						class="strategy-btn"
+						class:active={activeStrategy === 'lowestTotal'}
+						onclick={() => beaconStore.setStrategy('lowestTotal')}
+					>Quickest total</button>
+				</div>
+			{/if}
 			<div class="beacon-travel-times">
 				{#each travelTimes as tt}
 					<p class="beacon-travel-time">

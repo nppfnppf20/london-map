@@ -1,7 +1,9 @@
 import { writable } from 'svelte/store';
 import { beaconsApi, placesApi } from '$services/api';
 import { placesStore } from '$stores/places';
-import type { Beacon, Category, ParticipantTravelTime } from '$types';
+import type { Beacon, Category, MidpointStrategy } from '$types';
+
+type ActiveStrategy = 'fairest' | 'lowestTotal';
 
 interface BeaconState {
 	active: boolean;
@@ -9,8 +11,8 @@ interface BeaconState {
 	token: string | null;
 	beacon: Beacon | null;
 	midpoint: [number, number] | null;
-	travelTimes: ParticipantTravelTime[];
-	fairnessScore: number | null;
+	strategies: { lowestTotal: MidpointStrategy; fairest: MidpointStrategy } | null;
+	activeStrategy: ActiveStrategy;
 	responderName: string;
 	placeIds: string[];
 	loading: boolean;
@@ -23,8 +25,8 @@ const initialState: BeaconState = {
 	token: null,
 	beacon: null,
 	midpoint: null,
-	travelTimes: [],
-	fairnessScore: null,
+	strategies: null,
+	activeStrategy: 'fairest',
 	responderName: '',
 	placeIds: [],
 	loading: false,
@@ -85,14 +87,13 @@ function createBeaconStore() {
 					[...beacon.participants]
 				);
 
-				let travelTimes: ParticipantTravelTime[] = [];
-				let fairnessScore: number | null = null;
+				let strategies: BeaconState['strategies'] = null;
 
 				try {
 					const midpointResult = await beaconsApi.midpoint(currentToken);
-					midpoint = [midpointResult.midpoint.lat, midpointResult.midpoint.lng];
-					travelTimes = midpointResult.travelTimes;
-					fairnessScore = midpointResult.fairnessScore;
+					strategies = midpointResult.strategies;
+					const active = strategies.fairest;
+					midpoint = [active.midpoint.lat, active.midpoint.lng];
 				} catch {
 					// Fall back to geographic midpoint if transit API fails
 				}
@@ -114,8 +115,8 @@ function createBeaconStore() {
 					token: currentToken,
 					beacon,
 					midpoint,
-					travelTimes,
-					fairnessScore,
+					strategies,
+					activeStrategy: 'fairest',
 					responderName: name,
 					placeIds: places.map(p => p.id),
 					loading: false,
@@ -141,15 +142,14 @@ function createBeaconStore() {
 					beacon.participants
 				);
 
-				let travelTimes: ParticipantTravelTime[] = [];
-				let fairnessScore: number | null = null;
+				let strategies: BeaconState['strategies'] = null;
 
 				if (beacon.participants.length > 0) {
 					try {
 						const midpointResult = await beaconsApi.midpoint(token);
-						midpoint = [midpointResult.midpoint.lat, midpointResult.midpoint.lng];
-						travelTimes = midpointResult.travelTimes;
-						fairnessScore = midpointResult.fairnessScore;
+						strategies = midpointResult.strategies;
+						const active = strategies.fairest;
+						midpoint = [active.midpoint.lat, active.midpoint.lng];
 					} catch {
 						// Fall back to geographic midpoint
 					}
@@ -172,8 +172,8 @@ function createBeaconStore() {
 					token,
 					beacon,
 					midpoint,
-					travelTimes,
-					fairnessScore,
+					strategies,
+					activeStrategy: 'fairest',
 					responderName: '',
 					placeIds: places.map(p => p.id),
 					loading: false,
@@ -186,6 +186,18 @@ function createBeaconStore() {
 				set({ ...initialState, loading: false, error: message });
 				return null;
 			}
+		},
+
+		setStrategy(strategy: ActiveStrategy): void {
+			update(state => {
+				if (!state.strategies) return state;
+				const active = state.strategies[strategy];
+				return {
+					...state,
+					activeStrategy: strategy,
+					midpoint: [active.midpoint.lat, active.midpoint.lng] as [number, number]
+				};
+			});
 		},
 
 		setResponderName(name: string): void {

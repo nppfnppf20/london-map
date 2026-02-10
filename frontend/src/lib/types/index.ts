@@ -186,10 +186,18 @@ export interface ParticipantTravelTime {
 	durationMinutes: number;
 }
 
-export interface MidpointResult {
+export interface MidpointStrategy {
 	midpoint: { lat: number; lng: number };
 	travelTimes: ParticipantTravelTime[];
+	totalMinutes: number;
 	fairnessScore: number;
+}
+
+export interface MidpointResult {
+	strategies: {
+		lowestTotal: MidpointStrategy;
+		fairest: MidpointStrategy;
+	};
 }
 
 export interface AuthState {
