@@ -191,6 +191,17 @@ export interface CreateBeaconDto {
 	categories: Category[];
 }
 
+export interface ParticipantTravelTime {
+	name: string;
+	durationMinutes: number;
+}
+
+export interface MidpointResult {
+	midpoint: { lat: number; lng: number };
+	travelTimes: ParticipantTravelTime[];
+	fairnessScore: number;
+}
+
 declare global {
 	namespace Express {
 		interface Request {

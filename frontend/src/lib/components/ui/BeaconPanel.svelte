@@ -18,6 +18,7 @@
 	const beaconPlaces = $derived(
 		$placesStore.places.filter(p => $beaconStore.placeIds.includes(p.id))
 	);
+	const travelTimes = $derived($beaconStore.travelTimes);
 
 	function useCurrentLocation() {
 		if (!joinName.trim()) return;
@@ -90,6 +91,15 @@
 			</button>
 		</div>
 		<p class="beacon-answered-category">{beacon.creator_name} is looking for {categoryNames}</p>
+		{#if travelTimes.length > 0}
+			<div class="beacon-travel-times">
+				{#each travelTimes as tt}
+					<p class="beacon-travel-time">
+						{tt.name} — {tt.durationMinutes >= 0 ? `${tt.durationMinutes} min by transit` : 'transit time unavailable'}
+					</p>
+				{/each}
+			</div>
+		{/if}
 		<p class="beacon-answered-results">{categoryNames} near your middle point</p>
 	</div>
 	<div class="menu-divider ui-divider" aria-hidden="true"></div>

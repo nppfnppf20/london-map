@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { beaconsApi, placesApi } from '$services/api';
 import { placesStore } from '$stores/places';
-import type { Beacon, Category } from '$types';
+import type { Beacon, Category, ParticipantTravelTime } from '$types';
 
 interface BeaconState {
 	active: boolean;
@@ -9,6 +9,8 @@ interface BeaconState {
 	token: string | null;
 	beacon: Beacon | null;
 	midpoint: [number, number] | null;
+	travelTimes: ParticipantTravelTime[];
+	fairnessScore: number | null;
 	responderName: string;
 	placeIds: string[];
 	loading: boolean;
@@ -21,6 +23,8 @@ const initialState: BeaconState = {
 	token: null,
 	beacon: null,
 	midpoint: null,
+	travelTimes: [],
+	fairnessScore: null,
 	responderName: '',
 	placeIds: [],
 	loading: false,
@@ -75,11 +79,23 @@ function createBeaconStore() {
 			try {
 				const beacon = await beaconsApi.join(currentToken, { name, lat, lng });
 
-				const midpoint = calculateMidpoint(
+				let midpoint = calculateMidpoint(
 					beacon.creator_lat,
 					beacon.creator_lng,
 					[...beacon.participants]
 				);
+
+				let travelTimes: ParticipantTravelTime[] = [];
+				let fairnessScore: number | null = null;
+
+				try {
+					const midpointResult = await beaconsApi.midpoint(currentToken);
+					midpoint = [midpointResult.midpoint.lat, midpointResult.midpoint.lng];
+					travelTimes = midpointResult.travelTimes;
+					fairnessScore = midpointResult.fairnessScore;
+				} catch {
+					// Fall back to geographic midpoint if transit API fails
+				}
 
 				const categories: Category[] = beacon.categories || [];
 
@@ -98,6 +114,8 @@ function createBeaconStore() {
 					token: currentToken,
 					beacon,
 					midpoint,
+					travelTimes,
+					fairnessScore,
 					responderName: name,
 					placeIds: places.map(p => p.id),
 					loading: false,
@@ -117,11 +135,25 @@ function createBeaconStore() {
 
 			try {
 				const beacon = await beaconsApi.resolve(token);
-				const midpoint = calculateMidpoint(
+				let midpoint = calculateMidpoint(
 					beacon.creator_lat,
 					beacon.creator_lng,
 					beacon.participants
 				);
+
+				let travelTimes: ParticipantTravelTime[] = [];
+				let fairnessScore: number | null = null;
+
+				if (beacon.participants.length > 0) {
+					try {
+						const midpointResult = await beaconsApi.midpoint(token);
+						midpoint = [midpointResult.midpoint.lat, midpointResult.midpoint.lng];
+						travelTimes = midpointResult.travelTimes;
+						fairnessScore = midpointResult.fairnessScore;
+					} catch {
+						// Fall back to geographic midpoint
+					}
+				}
 
 				const categories: Category[] = beacon.categories || [];
 
@@ -140,6 +172,8 @@ function createBeaconStore() {
 					token,
 					beacon,
 					midpoint,
+					travelTimes,
+					fairnessScore,
 					responderName: '',
 					placeIds: places.map(p => p.id),
 					loading: false,

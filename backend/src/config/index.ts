@@ -12,6 +12,9 @@ export const config = {
 	},
 	ors: {
 		apiKey: process.env.ORS_API_KEY || ''
+	},
+	google: {
+		routesApiKey: process.env.GOOGLE_ROUTES_API_KEY || ''
 	}
 };
 

@@ -14,7 +14,8 @@ import type {
 	ShareLink,
 	ResolvedShareLink,
 	Beacon,
-	CreateBeaconInput
+	CreateBeaconInput,
+	MidpointResult
 } from '$types';
 import { supabase } from '$services/supabase';
 
@@ -296,6 +297,12 @@ export const beaconsApi = {
 		return request<Beacon>(`/beacons/${token}/join`, {
 			method: 'POST',
 			body: JSON.stringify(data)
+		});
+	},
+
+	midpoint: (token: string): Promise<MidpointResult> => {
+		return request<MidpointResult>(`/beacons/${token}/midpoint`, {
+			method: 'POST'
 		});
 	}
 };
