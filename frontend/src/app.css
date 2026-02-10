@@ -904,3 +904,44 @@ a {
 	color: var(--color-primary);
 	margin: 0;
 }
+
+.beacon-join-panel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	padding: var(--spacing-lg);
+}
+
+.beacon-join-title {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--color-primary);
+	margin: 0;
+}
+
+.beacon-join-subtitle {
+	font-size: 13px;
+	color: var(--gray-500);
+	margin: 0;
+}
+
+.beacon-join-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+}
+
+.beacon-join-actions button {
+	flex: 1;
+}
+
+.beacon-join-dismiss {
+	font-size: 13px;
+	color: var(--gray-400);
+	background: none;
+	padding: 4px;
+	text-align: center;
+}
+
+.beacon-join-dismiss:active {
+	color: var(--gray-600);
+}

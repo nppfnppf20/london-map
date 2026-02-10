@@ -10,6 +10,7 @@ interface BeaconState {
 	beacon: Beacon | null;
 	midpoint: [number, number] | null;
 	responderLocation: [number, number] | null;
+	responderName: string;
 	placeIds: string[];
 	loading: boolean;
 	error: string | null;
@@ -22,6 +23,7 @@ const initialState: BeaconState = {
 	beacon: null,
 	midpoint: null,
 	responderLocation: null,
+	responderName: '',
 	placeIds: [],
 	loading: false,
 	error: null
@@ -156,6 +158,10 @@ function createBeaconStore() {
 				set({ ...initialState, loading: false, error: message });
 				return null;
 			}
+		},
+
+		setResponderName(name: string): void {
+			update(state => ({ ...state, responderName: name }));
 		},
 
 		clear(): void {
