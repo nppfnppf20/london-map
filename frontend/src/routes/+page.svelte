@@ -16,6 +16,7 @@
 	import MenuNav from '$components/ui/MenuNav.svelte';
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
 	import BeaconsModal from '$components/ui/BeaconsModal.svelte';
+	import BeaconAnswered from '$components/ui/BeaconAnswered.svelte';
 	import { shareLinksApi } from '$services/api';
 	import { placesStore } from '$stores/places';
 	import { collectionsStore } from '$stores/collections';
@@ -310,20 +311,13 @@
 				/>
 			{:else}
 				<div class="menu-grip" aria-hidden="true"></div>
+				{#if $beaconStore.active}
+					<BeaconAnswered />
+				{:else}
 				{#if $shareStore.active}
 					<div class="share-banner">
 						<span class="share-banner-text">Shared: {$shareStore.name}</span>
 						<button class="share-banner-clear" onclick={() => { shareStore.clear(); placesStore.fetchAll(); collectionsStore.fetchAll(); }}>
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M18 6L6 18M6 6l12 12"/>
-							</svg>
-						</button>
-					</div>
-				{/if}
-				{#if $beaconStore.active}
-					<div class="beacon-banner">
-						<span class="beacon-banner-text">{$beaconStore.beacon?.creator_name}'s beacon - {$beaconStore.placeIds.length} spots found</span>
-						<button class="beacon-banner-clear" onclick={() => { beaconStore.clear(); placesStore.fetchAll(); }}>
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<path d="M18 6L6 18M6 6l12 12"/>
 							</svg>
@@ -517,6 +511,7 @@
 						{/if}
 					{/if}
 				</div>
+			{/if}
 			{/if}
 		</div>
 
@@ -781,13 +776,6 @@
 		align-self: center;
 	}
 
-	.menu-list {
-		flex: 1;
-		overflow-y: auto;
-		padding-bottom: var(--spacing-md);
-		min-height: 0;
-	}
-
 	.menu-item-placeholder {
 		height: 56px;
 		border-radius: 16px;
@@ -799,33 +787,6 @@
 		padding: var(--spacing-lg);
 		color: #9ca3af;
 	}
-
-	.menu-item-main {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-	}
-
-	.menu-item-name {
-		margin: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		font-size: 14px;
-		font-weight: 700;
-		color: #0f172a;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.menu-item-meta {
-		margin: 0;
-		display: inline-flex;
-		gap: 8px;
-	}
-
 
 	.bottom-bar {
 		margin-top: auto;
@@ -1122,42 +1083,6 @@
 
 	.share-banner-clear:active {
 		background: #c7d2fe;
-	}
-
-	.beacon-banner {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 8px 12px;
-		background: #fef3c7;
-		border: 1px solid #fcd34d;
-		border-radius: var(--radius-md);
-	}
-
-	.beacon-banner-text {
-		flex: 1;
-		font-size: 13px;
-		font-weight: 600;
-		color: #92400e;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.beacon-banner-clear {
-		flex-shrink: 0;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		background: transparent;
-		color: #b45309;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.beacon-banner-clear:active {
-		background: #fcd34d;
 	}
 
 	.beacon-join-panel {

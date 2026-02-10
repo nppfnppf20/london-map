@@ -12,7 +12,7 @@ export async function createBeacon(dto: CreateBeaconDto, userId: string | null):
 			creator_name: dto.creator_name,
 			creator_lat: dto.creator_lat,
 			creator_lng: dto.creator_lng,
-			category: dto.category,
+			categories: dto.categories,
 			created_by: userId
 		})
 		.select()

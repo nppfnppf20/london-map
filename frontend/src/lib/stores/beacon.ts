@@ -71,13 +71,17 @@ function createBeaconStore() {
 			if (!currentToken || !currentBeacon) return false;
 
 			try {
+				console.log('[beacon] joining with location:', { lat, lng });
 				const beacon = await beaconsApi.join(currentToken, { name, lat, lng });
+				console.log('[beacon] creator:', { lat: beacon.creator_lat, lng: beacon.creator_lng });
+				console.log('[beacon] participants:', beacon.participants);
 
 				const midpoint = calculateMidpoint(
 					beacon.creator_lat,
 					beacon.creator_lng,
-					[...beacon.participants]
+					[{ lat, lng }]
 				);
+				console.log('[beacon] midpoint:', midpoint);
 
 				const categories: Category[] = beacon.categories || [];
 
