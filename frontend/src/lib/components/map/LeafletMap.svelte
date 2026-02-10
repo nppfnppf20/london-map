@@ -34,6 +34,7 @@
 	let directionsLine: L.Polyline | null = null;
 	let nearbyIdSet = new Set<string>();
 	let routeIdSet = new Set<string>();
+	let beaconIdSet = new Set<string>();
 	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
 	let drawLine: L.Polyline | null = null;
 	let isDrawingStroke = false;
@@ -46,6 +47,7 @@
 	let expandedRoute: string | null = null;
 	let tourLine: L.Polyline | null = null;
 	let beaconFireMarker: L.Marker | null = null;
+	let beaconResponderMarker: L.Marker | null = null;
 	let beaconMidpointMarker: L.Marker | null = null;
 	let beaconCircle: L.Circle | null = null;
 	let routePreviewIds = new Set<string>();
@@ -119,6 +121,13 @@
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
 		if ($routeBuilder.active && place.route === $routeBuilder.routeName && place.route_stop != null) {
 			return 'route';
+		}
+
+		if ($beaconStore.active) {
+			if (!beaconIdSet.has(place.id)) {
+				return 'hidden';
+			}
+			return 'site';
 		}
 
 		if ($routeSearchStore.active) {
@@ -585,6 +594,13 @@
 		routeIdSet = new Set();
 	}
 
+	$: if ($beaconStore.active) {
+		beaconIdSet = new Set($beaconStore.placeIds);
+		updateMarkers();
+	} else {
+		beaconIdSet = new Set();
+	}
+
 	// Enable/disable pin click behavior for placement mode
 	$: if (map) {
 		setPinClickHandling();
@@ -669,6 +685,27 @@
 				beaconFireMarker.setLatLng([beacon.creator_lat, beacon.creator_lng]);
 			}
 
+			// Responder fire emoji at their location
+			if ($beaconStore.responderLocation) {
+				const responderLoc = $beaconStore.responderLocation;
+				if (!beaconResponderMarker) {
+					const responderIcon = leaflet.divIcon({
+						className: 'custom-marker',
+						html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">🔥</div>',
+						iconSize: [28, 28],
+						iconAnchor: [14, 28],
+						popupAnchor: [0, -28]
+					});
+					beaconResponderMarker = leaflet.marker(responderLoc, {
+						icon: responderIcon,
+						zIndexOffset: 2500
+					}).addTo(map);
+					beaconResponderMarker.bindPopup('<b>You</b>');
+				} else {
+					beaconResponderMarker.setLatLng(responderLoc);
+				}
+			}
+
 			// Midpoint marker
 			if (!beaconMidpointMarker) {
 				const midpointIcon = leaflet.divIcon({
@@ -707,6 +744,7 @@
 			}
 		} else {
 			if (beaconFireMarker) { beaconFireMarker.remove(); beaconFireMarker = null; }
+			if (beaconResponderMarker) { beaconResponderMarker.remove(); beaconResponderMarker = null; }
 			if (beaconMidpointMarker) { beaconMidpointMarker.remove(); beaconMidpointMarker = null; }
 			if (beaconCircle) { beaconCircle.remove(); beaconCircle = null; }
 		}

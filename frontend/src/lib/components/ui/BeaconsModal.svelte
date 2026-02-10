@@ -16,7 +16,7 @@
 
 	let step = $state<Step>('location');
 	let coords = $state<[number, number] | null>(null);
-	let selectedCategory = $state<Category | null>(null);
+	let selectedCategories = $state<Set<Category>>(new Set());
 	let creatorName = $state('');
 	let generatedUrl = $state('');
 	let loading = $state(false);
@@ -40,7 +40,7 @@
 	function reset() {
 		step = 'location';
 		coords = null;
-		selectedCategory = null;
+		selectedCategories = new Set();
 		creatorName = '';
 		generatedUrl = '';
 		loading = false;
@@ -64,6 +64,16 @@
 		if (e.key === 'Escape') {
 			handleClose();
 		}
+	}
+
+	function toggleCategory(cat: Category) {
+		const next = new Set(selectedCategories);
+		if (next.has(cat)) {
+			next.delete(cat);
+		} else {
+			next.add(cat);
+		}
+		selectedCategories = next;
 	}
 
 	function useCurrentLocation() {
@@ -104,7 +114,7 @@
 	}
 
 	async function generateLink() {
-		if (!coords || !selectedCategory) return;
+		if (!coords || selectedCategories.size === 0) return;
 
 		loading = true;
 		error = '';
@@ -114,7 +124,7 @@
 				creator_name: creatorName.trim(),
 				creator_lat: coords[0],
 				creator_lng: coords[1],
-				categories: [selectedCategory]
+				categories: [...selectedCategories]
 			});
 			generatedUrl = `${window.location.origin}/beacon/${beacon.token}`;
 			step = 'link';
@@ -136,10 +146,11 @@
 	}
 
 	async function shareLink() {
+		const catLabels = [...selectedCategories].map(c => CATEGORY_LABELS[c]).join(', ');
 		try {
 			await navigator.share({
 				title: 'The Beacons are Lit!',
-				text: `${creatorName} has lit their beacon! Join me for ${CATEGORY_LABELS[selectedCategory!]}.`,
+				text: `${creatorName} has lit their beacon! Join me for ${catLabels}.`,
 				url: generatedUrl
 			});
 		} catch {
@@ -194,8 +205,8 @@
 						{#each categories as cat}
 							<button
 								class="card-btn"
-								class:active={selectedCategory === cat.value}
-								onclick={() => { selectedCategory = cat.value; }}
+								class:active={selectedCategories.has(cat.value)}
+								onclick={() => { toggleCategory(cat.value); }}
 							>
 								{cat.label}
 							</button>
@@ -205,7 +216,7 @@
 						<button class="btn-cancel" onclick={() => { step = 'location'; }}>Back</button>
 						<button
 							class="btn-primary"
-							disabled={!selectedCategory || loading}
+							disabled={selectedCategories.size === 0 || loading}
 							onclick={generateLink}
 						>
 							{loading ? 'Creating...' : 'Light the Beacon'}
