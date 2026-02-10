@@ -168,7 +168,7 @@ export interface Beacon {
 	creator_name: string;
 	creator_lat: number;
 	creator_lng: number;
-	category: Category;
+	categories: Category[];
 	participants: BeaconParticipant[];
 	created_by: string | null;
 	created_at: string;
@@ -178,7 +178,7 @@ export interface CreateBeaconInput {
 	creator_name: string;
 	creator_lat: number;
 	creator_lng: number;
-	category: Category;
+	categories: Category[];
 }
 
 export interface AuthState {

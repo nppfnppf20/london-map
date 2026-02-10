@@ -29,6 +29,7 @@
 	import { layerStore } from '$stores/layers';
 	import { authStore } from '$stores/auth';
 	import { shareStore } from '$stores/share';
+	import { beaconStore } from '$stores/beacon';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 	import { goto } from '$app/navigation';
 
@@ -44,7 +45,8 @@
 	let beaconsModalOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
-	let pinAction = $state<'add' | 'nearby' | 'beacon' | null>(null);
+	let pinAction = $state<'add' | 'nearby' | 'beacon' | 'beaconJoin' | null>(null);
+	let beaconJoinName = $state('');
 	let beaconPinCoords = $state<[number, number] | null>(null);
 	let menuTab = $state<'Places' | 'Lists' | 'Tours'>('Lists');
 	let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
@@ -88,6 +90,12 @@
 			layerStore.showAllCollections();
 		} else if (menuTab === 'Tours') {
 			layerStore.showAllRoutes();
+		}
+	});
+
+	$effect(() => {
+		if ($beaconStore.active && $beaconStore.midpoint) {
+			mapStore.flyTo($beaconStore.midpoint, 14);
 		}
 	});
 
@@ -146,6 +154,10 @@
 		if (pinAction === 'beacon') {
 			beaconPinCoords = $mapStore.center;
 			beaconsModalOpen = true;
+		}
+		if (pinAction === 'beaconJoin') {
+			const coords = $mapStore.center;
+			beaconStore.join(beaconJoinName.trim(), coords[0], coords[1]);
 		}
 		pinAction = null;
 	}
@@ -308,7 +320,71 @@
 						</button>
 					</div>
 				{/if}
-				<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
+				{#if $beaconStore.active}
+					<div class="beacon-banner">
+						<span class="beacon-banner-text">{$beaconStore.beacon?.creator_name}'s beacon - {$beaconStore.placeIds.length} spots found</span>
+						<button class="beacon-banner-clear" onclick={() => { beaconStore.clear(); placesStore.fetchAll(); }}>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M18 6L6 18M6 6l12 12"/>
+							</svg>
+						</button>
+					</div>
+				{/if}
+				{#if $beaconStore.joining}
+					<div class="beacon-join-panel">
+						<h3 class="beacon-join-title">{$beaconStore.beacon?.creator_name} has lit their beacon!</h3>
+						<p class="beacon-join-subtitle">Share your location to find a meeting spot</p>
+						<div class="field">
+							<label for="beacon-join-name">Your name</label>
+							<input
+								id="beacon-join-name"
+								type="text"
+								bind:value={beaconJoinName}
+								placeholder="Enter your name"
+							/>
+						</div>
+						<div class="beacon-join-actions">
+							<button
+								class="btn-primary"
+								disabled={$beaconStore.loading || !beaconJoinName.trim()}
+								onclick={() => {
+									if (!beaconJoinName.trim()) return;
+									if (!navigator.geolocation) {
+										startPinMode('beaconJoin');
+										return;
+									}
+									navigator.geolocation.getCurrentPosition(
+										(pos) => {
+											beaconStore.join(beaconJoinName.trim(), pos.coords.latitude, pos.coords.longitude);
+										},
+										() => {
+											startPinMode('beaconJoin');
+										},
+										{ enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+									);
+								}}
+							>
+								{$beaconStore.loading ? 'Joining...' : 'Use current location'}
+							</button>
+							<button
+								class="btn-cancel"
+								disabled={$beaconStore.loading}
+								onclick={() => {
+									if (!beaconJoinName.trim()) return;
+									startPinMode('beaconJoin');
+								}}
+							>
+								Select on map
+							</button>
+						</div>
+						{#if $beaconStore.error}
+							<p class="error-msg">{$beaconStore.error}</p>
+						{/if}
+						<button class="beacon-join-dismiss" onclick={() => beaconStore.clear()}>Cancel</button>
+					</div>
+				{:else}
+					<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
+				{/if}
 				<div class="menu-divider ui-divider" aria-hidden="true"></div>
 				<div class="filter-row ui-chip-row" aria-label="Filter scope">
 					<button
@@ -1046,6 +1122,83 @@
 
 	.share-banner-clear:active {
 		background: #c7d2fe;
+	}
+
+	.beacon-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 12px;
+		background: #fef3c7;
+		border: 1px solid #fcd34d;
+		border-radius: var(--radius-md);
+	}
+
+	.beacon-banner-text {
+		flex: 1;
+		font-size: 13px;
+		font-weight: 600;
+		color: #92400e;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.beacon-banner-clear {
+		flex-shrink: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: transparent;
+		color: #b45309;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.beacon-banner-clear:active {
+		background: #fcd34d;
+	}
+
+	.beacon-join-panel {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+		padding: var(--spacing-lg);
+	}
+
+	.beacon-join-title {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--color-primary);
+		margin: 0;
+	}
+
+	.beacon-join-subtitle {
+		font-size: 13px;
+		color: var(--gray-500);
+		margin: 0;
+	}
+
+	.beacon-join-actions {
+		display: flex;
+		gap: var(--spacing-sm);
+	}
+
+	.beacon-join-actions button {
+		flex: 1;
+	}
+
+	.beacon-join-dismiss {
+		font-size: 13px;
+		color: var(--gray-400);
+		background: none;
+		padding: 4px;
+		text-align: center;
+	}
+
+	.beacon-join-dismiss:active {
+		color: var(--gray-600);
 	}
 
 	.share-icon-btn {

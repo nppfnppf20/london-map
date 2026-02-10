@@ -8,6 +8,7 @@
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { directionsStore } from '$stores/directions';
+	import { beaconStore } from '$stores/beacon';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
 	import type L from 'leaflet';
 	import type { Place, LayerState } from '$types';
@@ -44,6 +45,9 @@
 	let watchId: number | null = null;
 	let expandedRoute: string | null = null;
 	let tourLine: L.Polyline | null = null;
+	let beaconFireMarker: L.Marker | null = null;
+	let beaconMidpointMarker: L.Marker | null = null;
+	let beaconCircle: L.Circle | null = null;
 	let routePreviewIds = new Set<string>();
 
 	export let pinMode = false;
@@ -638,6 +642,73 @@
 		} else if (nearbyCircle) {
 			nearbyCircle.remove();
 			nearbyCircle = null;
+		}
+	}
+
+	// Render beacon overlays (fire marker, midpoint, radius circle)
+	$: if (map && leaflet) {
+		if ($beaconStore.active && $beaconStore.midpoint && $beaconStore.beacon) {
+			const beacon = $beaconStore.beacon;
+			const midpoint = $beaconStore.midpoint;
+
+			// Fire emoji at creator's location
+			if (!beaconFireMarker) {
+				const fireIcon = leaflet.divIcon({
+					className: 'custom-marker',
+					html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">🔥</div>',
+					iconSize: [28, 28],
+					iconAnchor: [14, 28],
+					popupAnchor: [0, -28]
+				});
+				beaconFireMarker = leaflet.marker([beacon.creator_lat, beacon.creator_lng], {
+					icon: fireIcon,
+					zIndexOffset: 2500
+				}).addTo(map);
+				beaconFireMarker.bindPopup(`<b>${beacon.creator_name}</b>`);
+			} else {
+				beaconFireMarker.setLatLng([beacon.creator_lat, beacon.creator_lng]);
+			}
+
+			// Midpoint marker
+			if (!beaconMidpointMarker) {
+				const midpointIcon = leaflet.divIcon({
+					className: 'custom-marker',
+					html: `<div style="
+						width: 14px;
+						height: 14px;
+						background: #f59e0b;
+						border: 3px solid white;
+						border-radius: 50%;
+						box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+					"></div>`,
+					iconSize: [14, 14],
+					iconAnchor: [7, 7]
+				});
+				beaconMidpointMarker = leaflet.marker(midpoint, {
+					icon: midpointIcon,
+					zIndexOffset: 2000
+				}).addTo(map);
+				beaconMidpointMarker.bindPopup('Meeting midpoint');
+			} else {
+				beaconMidpointMarker.setLatLng(midpoint);
+			}
+
+			// 1km radius circle around midpoint
+			if (!beaconCircle) {
+				beaconCircle = leaflet.circle(midpoint, {
+					radius: 1000,
+					color: '#f59e0b',
+					weight: 2,
+					fillColor: '#f59e0b',
+					fillOpacity: 0.08
+				}).addTo(map);
+			} else {
+				beaconCircle.setLatLng(midpoint);
+			}
+		} else {
+			if (beaconFireMarker) { beaconFireMarker.remove(); beaconFireMarker = null; }
+			if (beaconMidpointMarker) { beaconMidpointMarker.remove(); beaconMidpointMarker = null; }
+			if (beaconCircle) { beaconCircle.remove(); beaconCircle = null; }
 		}
 	}
 

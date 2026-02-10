@@ -114,7 +114,7 @@
 				creator_name: creatorName.trim(),
 				creator_lat: coords[0],
 				creator_lng: coords[1],
-				category: selectedCategory
+				categories: [selectedCategory]
 			});
 			generatedUrl = `${window.location.origin}/beacon/${beacon.token}`;
 			step = 'link';
