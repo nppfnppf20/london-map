@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Knight frame for 4 people -->
+  <rect width="640" height="480" fill="none"/>
+  <!-- Top-left helmet -->
+  <path d="M20,20 L160,20 L170,55 L170,170 L160,195 L20,195 L10,170 L10,55 Z" fill="none" stroke="#8B7355" stroke-width="3"/>
+  <rect x="30" y="60" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="2" stroke-dasharray="5,3"/>
+  <path d="M90,20 Q100,0 110,10 Q120,-5 125,20" fill="#DC143C" stroke="#8B0000" stroke-width="1.5"/>
+  <!-- Top-right helmet -->
+  <path d="M480,20 L620,20 L630,55 L630,170 L620,195 L480,195 L470,170 L470,55 Z" fill="none" stroke="#8B7355" stroke-width="3"/>
+  <rect x="490" y="60" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="2" stroke-dasharray="5,3"/>
+  <path d="M550,20 Q560,0 570,10 Q580,-5 585,20" fill="#DC143C" stroke="#8B0000" stroke-width="1.5"/>
+  <!-- Bottom-left helmet -->
+  <path d="M20,250 L160,250 L170,285 L170,400 L160,425 L20,425 L10,400 L10,285 Z" fill="none" stroke="#8B7355" stroke-width="3"/>
+  <rect x="30" y="290" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Bottom-right helmet -->
+  <path d="M480,250 L620,250 L630,285 L630,400 L620,425 L480,425 L470,400 L470,285 Z" fill="none" stroke="#8B7355" stroke-width="3"/>
+  <rect x="490" y="290" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Shield in center -->
+  <path d="M290,180 L350,180 L360,210 L320,280 L280,210 Z" fill="none" stroke="#DAA520" stroke-width="3"/>
+  <text x="320" y="460" text-anchor="middle" fill="#DAA520" font-size="24" font-family="serif">Knights</text>
+</svg>

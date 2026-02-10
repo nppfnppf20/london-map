@@ -56,6 +56,13 @@
 
 {#if $beaconStore.joining && beacon}
 	<div class="beacon-join-panel">
+		{#if beacon.image_path}
+			<img
+				src={beacon.image_path}
+				alt="Beacon group photo by {beacon.creator_name}"
+				class="beacon-photo"
+			/>
+		{/if}
 		<h3 class="beacon-join-title">{beacon.creator_name} has lit their beacon!</h3>
 		<p class="beacon-join-subtitle">Share your location to find a meeting spot</p>
 		<div class="field">
@@ -142,3 +149,14 @@
 		{/each}
 	</div>
 {/if}
+
+<style>
+	.beacon-photo {
+		width: 100%;
+		max-width: 320px;
+		border-radius: 12px;
+		margin: 0 auto 12px;
+		display: block;
+		object-fit: cover;
+	}
+</style>

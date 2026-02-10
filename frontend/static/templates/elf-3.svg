@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Elf frame for 3 people -->
+  <rect width="640" height="480" fill="none"/>
+  <!-- Left elf -->
+  <path d="M15,200 L-5,120 L25,170" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M145,200 L165,120 L135,170" fill="none" stroke="#228B22" stroke-width="3"/>
+  <rect x="28" y="150" width="105" height="130" rx="12" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Center elf -->
+  <path d="M225,180 L195,100 L235,150" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M415,180 L445,100 L405,150" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M260,110 Q300,70 320,90 Q340,70 380,110" fill="none" stroke="#228B22" stroke-width="3"/>
+  <rect x="250" y="135" width="140" height="170" rx="15" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="6,3"/>
+  <!-- Right elf -->
+  <path d="M495,200 L475,120 L505,170" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M625,200 L645,120 L615,170" fill="none" stroke="#228B22" stroke-width="3"/>
+  <rect x="508" y="150" width="105" height="130" rx="12" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="320" y="460" text-anchor="middle" fill="#90EE90" font-size="24" font-family="serif">Elves</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Elf frame for 2 people -->
+  <rect width="640" height="480" fill="none"/>
+  <!-- Left elf -->
+  <path d="M55,200 L20,110 L65,165" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M215,200 L250,110 L205,165" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M80,120 Q110,80 135,100 Q160,80 190,120" fill="none" stroke="#228B22" stroke-width="3"/>
+  <rect x="70" y="140" width="130" height="160" rx="15" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="6,3"/>
+  <!-- Right elf -->
+  <path d="M425,200 L390,110 L435,165" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M585,200 L620,110 L575,165" fill="none" stroke="#228B22" stroke-width="3"/>
+  <path d="M450,120 Q480,80 505,100 Q530,80 560,120" fill="none" stroke="#228B22" stroke-width="3"/>
+  <rect x="440" y="140" width="130" height="160" rx="15" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="6,3"/>
+  <!-- Vine connector -->
+  <path d="M250,250 Q320,200 390,250" fill="none" stroke="#228B22" stroke-width="2"/>
+  <text x="320" y="460" text-anchor="middle" fill="#90EE90" font-size="24" font-family="serif">Elves</text>
+</svg>

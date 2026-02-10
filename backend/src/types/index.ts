@@ -179,6 +179,7 @@ export interface Beacon {
 	creator_lat: number;
 	creator_lng: number;
 	categories: Category[];
+	image_path: string | null;
 	participants: BeaconParticipant[];
 	created_by: string | null;
 	created_at: string;
@@ -189,6 +190,7 @@ export interface CreateBeaconDto {
 	creator_lat: number;
 	creator_lng: number;
 	categories: Category[];
+	image_path?: string;
 }
 
 export interface ParticipantTravelTime {

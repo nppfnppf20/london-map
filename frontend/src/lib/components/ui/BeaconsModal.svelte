@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { beaconsApi } from '$services/api';
+	import { uploadBeaconImage } from '$services/storage';
 	import { CATEGORY_LABELS } from '$utils/map-helpers';
+	import BeaconCamera from './BeaconCamera.svelte';
 	import type { Category } from '$types';
 
 	interface Props {
@@ -12,7 +14,7 @@
 
 	let { open, onClose, onSelectOnMap, mapCoords = null }: Props = $props();
 
-	type Step = 'location' | 'category' | 'link';
+	type Step = 'location' | 'category' | 'groupSize' | 'camera' | 'link';
 
 	let step = $state<Step>('location');
 	let coords = $state<[number, number] | null>(null);
@@ -23,6 +25,8 @@
 	let error = $state('');
 	let copied = $state(false);
 	let locating = $state(false);
+	let groupSize = $state(2);
+	let imagePath = $state<string | undefined>(undefined);
 
 	const categories = (Object.entries(CATEGORY_LABELS) as [Category, string][]).map(
 		([value, label]) => ({ value, label })
@@ -47,6 +51,8 @@
 		error = '';
 		copied = false;
 		locating = false;
+		groupSize = 2;
+		imagePath = undefined;
 	}
 
 	function handleClose() {
@@ -113,7 +119,36 @@
 		onSelectOnMap();
 	}
 
-	async function generateLink() {
+	function goToGroupSize() {
+		if (selectedCategories.size === 0) return;
+		step = 'groupSize';
+	}
+
+	function goToCamera() {
+		step = 'camera';
+	}
+
+	async function handleCapture(blob: Blob) {
+		loading = true;
+		error = '';
+
+		try {
+			imagePath = await uploadBeaconImage(blob);
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to upload photo';
+			loading = false;
+			return;
+		}
+
+		await createBeaconAndGenerateLink();
+	}
+
+	async function handleSkipPhoto() {
+		imagePath = undefined;
+		await createBeaconAndGenerateLink();
+	}
+
+	async function createBeaconAndGenerateLink() {
 		if (!coords || selectedCategories.size === 0) return;
 
 		loading = true;
@@ -124,7 +159,8 @@
 				creator_name: creatorName.trim(),
 				creator_lat: coords[0],
 				creator_lng: coords[1],
-				categories: [...selectedCategories]
+				categories: [...selectedCategories],
+				...(imagePath ? { image_path: imagePath } : {})
 			});
 			generatedUrl = `${window.location.origin}/beacon/${beacon.token}`;
 			step = 'link';
@@ -170,6 +206,8 @@
 				<h2>
 					{#if step === 'location'}Where are you?
 					{:else if step === 'category'}What are you after?
+					{:else if step === 'groupSize'}How many of you?
+					{:else if step === 'camera'}Strike a pose!
 					{:else}Your beacon is lit! Share the link to let others know
 					{/if}
 				</h2>
@@ -216,12 +254,49 @@
 						<button class="btn-cancel" onclick={() => { step = 'location'; }}>Back</button>
 						<button
 							class="btn-primary"
-							disabled={selectedCategories.size === 0 || loading}
-							onclick={generateLink}
+							disabled={selectedCategories.size === 0}
+							onclick={goToGroupSize}
 						>
-							{loading ? 'Creating...' : 'Light the Beacon'}
+							Next
 						</button>
 					</div>
+
+				{:else if step === 'groupSize'}
+					<p class="info-msg" style="text-align: center; font-size: 14px; margin-bottom: 12px;">
+						Pick your group size for a fun photo template
+					</p>
+					<div class="group-size-grid">
+						{#each [1, 2, 3, 4] as size}
+							<button
+								class="group-size-btn"
+								class:active={groupSize === size}
+								onclick={() => { groupSize = size; }}
+							>
+								{size}
+							</button>
+						{/each}
+					</div>
+					<div class="modal-actions">
+						<button class="btn-cancel" onclick={() => { step = 'category'; }}>Back</button>
+						<button class="btn-primary" onclick={goToCamera}>
+							Open Camera
+						</button>
+					</div>
+					<div class="modal-actions">
+						<button class="btn-cancel" onclick={handleSkipPhoto} disabled={loading}>
+							{loading ? 'Creating...' : 'Skip Photo'}
+						</button>
+					</div>
+
+				{:else if step === 'camera'}
+					<BeaconCamera
+						{groupSize}
+						onCapture={handleCapture}
+						onSkip={handleSkipPhoto}
+					/>
+					{#if loading}
+						<p class="info-msg" style="text-align: center; font-size: 14px;">Uploading...</p>
+					{/if}
 
 				{:else}
 					<p class="info-msg" style="text-align: center; word-break: break-all; font-size: 14px;">
@@ -246,3 +321,30 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.group-size-grid {
+		display: flex;
+		gap: 12px;
+		justify-content: center;
+		margin-bottom: 16px;
+	}
+
+	.group-size-btn {
+		width: 56px;
+		height: 56px;
+		border-radius: 12px;
+		border: 2px solid var(--color-border, #ddd);
+		background: var(--color-bg-secondary, #f5f5f5);
+		font-size: 20px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.group-size-btn.active {
+		border-color: var(--color-primary, #DAA520);
+		background: var(--color-primary, #DAA520);
+		color: #fff;
+	}
+</style>

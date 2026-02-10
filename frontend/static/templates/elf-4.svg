@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Elf frame for 4 people -->
+  <rect width="640" height="480" fill="none"/>
+  <!-- Top-left elf -->
+  <path d="M15,80 L0,30 L25,60" fill="none" stroke="#228B22" stroke-width="2"/>
+  <path d="M165,80 L180,30 L155,60" fill="none" stroke="#228B22" stroke-width="2"/>
+  <rect x="30" y="60" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Top-right elf -->
+  <path d="M475,80 L460,30 L485,60" fill="none" stroke="#228B22" stroke-width="2"/>
+  <path d="M625,80 L640,30 L615,60" fill="none" stroke="#228B22" stroke-width="2"/>
+  <rect x="490" y="60" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Bottom-left elf -->
+  <path d="M15,310 L0,260 L25,290" fill="none" stroke="#228B22" stroke-width="2"/>
+  <path d="M165,310 L180,260 L155,290" fill="none" stroke="#228B22" stroke-width="2"/>
+  <rect x="30" y="290" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Bottom-right elf -->
+  <path d="M475,310 L460,260 L485,290" fill="none" stroke="#228B22" stroke-width="2"/>
+  <path d="M625,310 L640,260 L615,290" fill="none" stroke="#228B22" stroke-width="2"/>
+  <rect x="490" y="290" width="120" height="125" rx="12" fill="rgba(0,0,0,0.3)" stroke="#90EE90" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Tree in center -->
+  <path d="M320,170 L280,240 L360,240 Z" fill="#2E8B57" opacity="0.5"/>
+  <path d="M320,200 L290,260 L350,260 Z" fill="#228B22" opacity="0.5"/>
+  <text x="320" y="460" text-anchor="middle" fill="#90EE90" font-size="24" font-family="serif">Elves</text>
+</svg>

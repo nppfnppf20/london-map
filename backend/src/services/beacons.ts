@@ -13,6 +13,7 @@ export async function createBeacon(dto: CreateBeaconDto, userId: string | null):
 			creator_lat: dto.creator_lat,
 			creator_lng: dto.creator_lng,
 			categories: dto.categories,
+			image_path: dto.image_path || null,
 			created_by: userId
 		})
 		.select()

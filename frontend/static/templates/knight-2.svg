@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Knight frame for 2 people -->
+  <rect width="640" height="480" fill="none"/>
+  <!-- Left helmet -->
+  <path d="M60,80 L210,80 L225,130 L225,270 L210,310 L60,310 L45,270 L45,130 Z" fill="none" stroke="#8B7355" stroke-width="4"/>
+  <rect x="70" y="140" width="130" height="160" rx="15" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="2" stroke-dasharray="6,3"/>
+  <path d="M135,80 Q150,45 165,60 Q180,35 190,80" fill="#DC143C" stroke="#8B0000" stroke-width="2"/>
+  <!-- Right helmet -->
+  <path d="M430,80 L580,80 L595,130 L595,270 L580,310 L430,310 L415,270 L415,130 Z" fill="none" stroke="#8B7355" stroke-width="4"/>
+  <rect x="440" y="140" width="130" height="160" rx="15" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="2" stroke-dasharray="6,3"/>
+  <path d="M505,80 Q520,45 535,60 Q550,35 560,80" fill="#DC143C" stroke="#8B0000" stroke-width="2"/>
+  <!-- Crossed swords -->
+  <line x1="280" y1="350" x2="360" y2="100" stroke="#C0C0C0" stroke-width="3"/>
+  <line x1="360" y1="350" x2="280" y2="100" stroke="#C0C0C0" stroke-width="3"/>
+  <text x="320" y="460" text-anchor="middle" fill="#DAA520" font-size="24" font-family="serif">Knights</text>
+</svg>

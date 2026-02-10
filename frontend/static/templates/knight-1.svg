@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Knight helmet frame for 1 person -->
+  <rect width="640" height="480" fill="none"/>
+  <!-- Helmet outline -->
+  <path d="M220,60 L420,60 L440,120 L440,280 L420,340 L220,340 L200,280 L200,120 Z" fill="none" stroke="#8B7355" stroke-width="6"/>
+  <!-- Face cutout -->
+  <rect x="230" y="130" width="180" height="200" rx="20" fill="rgba(0,0,0,0.3)" stroke="#DAA520" stroke-width="3" stroke-dasharray="8,4"/>
+  <!-- Helmet visor slots -->
+  <line x1="210" y1="100" x2="430" y2="100" stroke="#8B7355" stroke-width="4"/>
+  <line x1="210" y1="110" x2="430" y2="110" stroke="#8B7355" stroke-width="2"/>
+  <!-- Plume -->
+  <path d="M320,60 Q340,20 360,40 Q380,10 400,50 Q420,20 410,60" fill="#DC143C" stroke="#8B0000" stroke-width="2"/>
+  <text x="320" y="460" text-anchor="middle" fill="#DAA520" font-size="24" font-family="serif">Knight</text>
+</svg>
