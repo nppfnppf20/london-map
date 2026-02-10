@@ -165,6 +165,32 @@ export interface AuthUser {
 	role: Role;
 }
 
+export interface BeaconParticipant {
+	name: string;
+	lat: number;
+	lng: number;
+	joined_at: string;
+}
+
+export interface Beacon {
+	id: string;
+	token: string;
+	creator_name: string;
+	creator_lat: number;
+	creator_lng: number;
+	category: Category;
+	participants: BeaconParticipant[];
+	created_by: string | null;
+	created_at: string;
+}
+
+export interface CreateBeaconDto {
+	creator_name: string;
+	creator_lat: number;
+	creator_lng: number;
+	category: Category;
+}
+
 declare global {
 	namespace Express {
 		interface Request {

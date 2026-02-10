@@ -5,6 +5,7 @@ import collectionsRoutes from './collections.js';
 import routingRoutes from './routing.js';
 import profilesRoutes from './profiles.js';
 import shareLinksRoutes from './share-links.js';
+import beaconsRoutes from './beacons.js';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use('/geocode', geocoderRoutes);
 router.use('/routing', routingRoutes);
 router.use('/profiles', profilesRoutes);
 router.use('/share-links', shareLinksRoutes);
+router.use('/beacons', beaconsRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

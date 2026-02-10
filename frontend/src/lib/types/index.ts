@@ -155,6 +155,32 @@ export interface ResolvedShareLink {
 	route_names: string[];
 }
 
+export interface BeaconParticipant {
+	name: string;
+	lat: number;
+	lng: number;
+	joined_at: string;
+}
+
+export interface Beacon {
+	id: string;
+	token: string;
+	creator_name: string;
+	creator_lat: number;
+	creator_lng: number;
+	category: Category;
+	participants: BeaconParticipant[];
+	created_by: string | null;
+	created_at: string;
+}
+
+export interface CreateBeaconInput {
+	creator_name: string;
+	creator_lat: number;
+	creator_lng: number;
+	category: Category;
+}
+
 export interface AuthState {
 	user: { id: string; email: string; role?: Role } | null;
 	session: { access_token: string } | null;

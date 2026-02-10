@@ -12,7 +12,9 @@ import type {
 	DirectionsResult,
 	Profile,
 	ShareLink,
-	ResolvedShareLink
+	ResolvedShareLink,
+	Beacon,
+	CreateBeaconInput
 } from '$types';
 import { supabase } from '$services/supabase';
 
@@ -274,6 +276,26 @@ export const shareLinksApi = {
 	delete: (id: string): Promise<void> => {
 		return request<void>(`/share-links/${id}`, {
 			method: 'DELETE'
+		});
+	}
+};
+
+export const beaconsApi = {
+	create: (data: CreateBeaconInput): Promise<Beacon> => {
+		return request<Beacon>('/beacons', {
+			method: 'POST',
+			body: JSON.stringify(data)
+		});
+	},
+
+	resolve: (token: string): Promise<Beacon> => {
+		return request<Beacon>(`/beacons/${token}`);
+	},
+
+	join: (token: string, data: { name: string; lat: number; lng: number }): Promise<Beacon> => {
+		return request<Beacon>(`/beacons/${token}/join`, {
+			method: 'POST',
+			body: JSON.stringify(data)
 		});
 	}
 };

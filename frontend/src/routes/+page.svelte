@@ -15,6 +15,7 @@
 	import AuthModal from '$components/ui/AuthModal.svelte';
 	import MenuNav from '$components/ui/MenuNav.svelte';
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
+	import BeaconsModal from '$components/ui/BeaconsModal.svelte';
 	import { shareLinksApi } from '$services/api';
 	import { placesStore } from '$stores/places';
 	import { collectionsStore } from '$stores/collections';
@@ -40,9 +41,11 @@
 	let addMenuOpen = $state(false);
 	let exploreModalOpen = $state(false);
 	let plusMenuOpen = $state(false);
+	let beaconsModalOpen = $state(false);
 	let pinMode = $state(false);
 	let pinCoords = $state<[number, number] | null>(null);
-	let pinAction = $state<'add' | 'nearby' | null>(null);
+	let pinAction = $state<'add' | 'nearby' | 'beacon' | null>(null);
+	let beaconPinCoords = $state<[number, number] | null>(null);
 	let menuTab = $state<'Places' | 'Lists' | 'Tours'>('Lists');
 	let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
 		new Set(['Public'])
@@ -140,6 +143,10 @@
 		if (pinAction === 'nearby') {
 			nearbyModalOpen = true;
 		}
+		if (pinAction === 'beacon') {
+			beaconPinCoords = $mapStore.center;
+			beaconsModalOpen = true;
+		}
 		pinAction = null;
 	}
 
@@ -232,6 +239,15 @@
 				</svg>
 			</button>
 		{/if}
+
+		<button
+			class="beacon-btn ui-fab"
+			type="button"
+			aria-label="The Beacons are Lit"
+			onclick={() => { beaconsModalOpen = true; }}
+		>
+			<span style="font-size: 22px; line-height: 1;">🔥</span>
+		</button>
 
 		<div class="plus-menu-wrap">
 			<button
@@ -611,6 +627,18 @@
 	/>
 	<CreateRouteModal open={routeModalOpen} onClose={() => routeModalOpen = false} />
 	<AuthModal open={authModalOpen} onClose={() => authModalOpen = false} />
+	<BeaconsModal
+		open={beaconsModalOpen}
+		mapCoords={beaconPinCoords}
+		onClose={() => {
+			beaconsModalOpen = false;
+			beaconPinCoords = null;
+		}}
+		onSelectOnMap={() => {
+			beaconsModalOpen = false;
+			startPinMode('beacon');
+		}}
+	/>
 
 	{#if shareModalOpen}
 		<div class="share-modal-backdrop" onclick={() => shareModalOpen = false}>
@@ -865,6 +893,21 @@
 	.map-plus-btn:focus-visible {
 		outline: 3px solid rgba(99, 102, 241, 0.6);
 		outline-offset: 2px;
+	}
+
+	.beacon-btn {
+		position: absolute;
+		right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+		bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px) + 56px);
+		z-index: var(--z-fab);
+		border: 0;
+		background: var(--gray-100);
+		color: white;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.beacon-btn:hover {
+		background: var(--gray-200);
 	}
 
 	.plus-menu-wrap {
