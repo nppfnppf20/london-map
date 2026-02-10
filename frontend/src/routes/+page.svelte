@@ -157,7 +157,7 @@
 		}
 		if (pinAction === 'beaconJoin') {
 			const coords = $mapStore.center;
-			beaconStore.join($beaconStore.responderName, coords[0], coords[1]);
+			beaconStore.setPendingJoinCoords(coords[0], coords[1]);
 		}
 		pinAction = null;
 	}

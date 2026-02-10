@@ -14,6 +14,7 @@ interface BeaconState {
 	strategies: { lowestTotal: MidpointStrategy; fairest: MidpointStrategy } | null;
 	activeStrategy: ActiveStrategy;
 	responderName: string;
+	pendingJoinCoords: { lat: number; lng: number } | null;
 	placeIds: string[];
 	loading: boolean;
 	error: string | null;
@@ -28,6 +29,7 @@ const initialState: BeaconState = {
 	strategies: null,
 	activeStrategy: 'fairest',
 	responderName: '',
+	pendingJoinCoords: null,
 	placeIds: [],
 	loading: false,
 	error: null
@@ -66,7 +68,7 @@ function createBeaconStore() {
 			}
 		},
 
-		async join(name: string, lat: number, lng: number): Promise<boolean> {
+		async join(name: string, lat: number, lng: number, imagePath?: string): Promise<boolean> {
 			let currentToken: string | null = null;
 			let currentBeacon: Beacon | null = null;
 
@@ -79,7 +81,7 @@ function createBeaconStore() {
 			if (!currentToken || !currentBeacon) return false;
 
 			try {
-				const beacon = await beaconsApi.join(currentToken, { name, lat, lng });
+				const beacon = await beaconsApi.join(currentToken, { name, lat, lng, ...(imagePath ? { image_path: imagePath } : {}) });
 
 				let midpoint = calculateMidpoint(
 					beacon.creator_lat,
@@ -202,6 +204,10 @@ function createBeaconStore() {
 
 		setResponderName(name: string): void {
 			update(state => ({ ...state, responderName: name }));
+		},
+
+		setPendingJoinCoords(lat: number, lng: number): void {
+			update(state => ({ ...state, pendingJoinCoords: { lat, lng } }));
 		},
 
 		clear(): void {

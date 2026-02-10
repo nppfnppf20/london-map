@@ -293,7 +293,7 @@ export const beaconsApi = {
 		return request<Beacon>(`/beacons/${token}`);
 	},
 
-	join: (token: string, data: { name: string; lat: number; lng: number }): Promise<Beacon> => {
+	join: (token: string, data: { name: string; lat: number; lng: number; image_path?: string }): Promise<Beacon> => {
 		return request<Beacon>(`/beacons/${token}/join`, {
 			method: 'POST',
 			body: JSON.stringify(data)

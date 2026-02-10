@@ -41,14 +41,14 @@ export async function resolve(req: Request, res: Response): Promise<void> {
 export async function join(req: Request, res: Response): Promise<void> {
 	try {
 		const { token } = req.params;
-		const { name, lat, lng } = req.body;
+		const { name, lat, lng, image_path } = req.body;
 
 		if (!name || lat == null || lng == null) {
 			res.status(400).json({ data: null, error: 'Missing required fields: name, lat, lng' });
 			return;
 		}
 
-		const beacon = await beaconsService.addParticipant(token, { name, lat, lng });
+		const beacon = await beaconsService.addParticipant(token, { name, lat, lng, image_path });
 
 		if (!beacon) {
 			res.status(404).json({ data: null, error: 'Beacon not found' });

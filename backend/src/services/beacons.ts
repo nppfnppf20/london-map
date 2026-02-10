@@ -45,7 +45,7 @@ export async function resolveBeacon(token: string): Promise<Beacon | null> {
 
 export async function addParticipant(
 	token: string,
-	participant: { name: string; lat: number; lng: number }
+	participant: { name: string; lat: number; lng: number; image_path?: string }
 ): Promise<Beacon | null> {
 	const supabase = getSupabaseClient();
 
@@ -61,7 +61,13 @@ export async function addParticipant(
 	}
 
 	const participants = beacon.participants || [];
-	participants.push({ ...participant, joined_at: new Date().toISOString() });
+	participants.push({
+		name: participant.name,
+		lat: participant.lat,
+		lng: participant.lng,
+		image_path: participant.image_path || null,
+		joined_at: new Date().toISOString()
+	});
 
 	const { data, error } = await supabase
 		.from(TABLE_NAME)

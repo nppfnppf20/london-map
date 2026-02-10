@@ -159,6 +159,7 @@ export interface BeaconParticipant {
 	name: string;
 	lat: number;
 	lng: number;
+	image_path: string | null;
 	joined_at: string;
 }
 
