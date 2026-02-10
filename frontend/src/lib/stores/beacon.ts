@@ -9,7 +9,6 @@ interface BeaconState {
 	token: string | null;
 	beacon: Beacon | null;
 	midpoint: [number, number] | null;
-	responderLocation: [number, number] | null;
 	responderName: string;
 	placeIds: string[];
 	loading: boolean;
@@ -22,7 +21,6 @@ const initialState: BeaconState = {
 	token: null,
 	beacon: null,
 	midpoint: null,
-	responderLocation: null,
 	responderName: '',
 	placeIds: [],
 	loading: false,
@@ -75,17 +73,13 @@ function createBeaconStore() {
 			if (!currentToken || !currentBeacon) return false;
 
 			try {
-				console.log('[beacon] joining with location:', { lat, lng });
 				const beacon = await beaconsApi.join(currentToken, { name, lat, lng });
-				console.log('[beacon] creator:', { lat: beacon.creator_lat, lng: beacon.creator_lng });
-				console.log('[beacon] participants:', beacon.participants);
 
 				const midpoint = calculateMidpoint(
 					beacon.creator_lat,
 					beacon.creator_lng,
-					[{ lat, lng }]
+					[...beacon.participants]
 				);
-				console.log('[beacon] midpoint:', midpoint);
 
 				const categories: Category[] = beacon.categories || [];
 
@@ -104,7 +98,7 @@ function createBeaconStore() {
 					token: currentToken,
 					beacon,
 					midpoint,
-					responderLocation: [lat, lng],
+					responderName: name,
 					placeIds: places.map(p => p.id),
 					loading: false,
 					error: null
@@ -146,7 +140,7 @@ function createBeaconStore() {
 					token,
 					beacon,
 					midpoint,
-					responderLocation: null,
+					responderName: '',
 					placeIds: places.map(p => p.id),
 					loading: false,
 					error: null

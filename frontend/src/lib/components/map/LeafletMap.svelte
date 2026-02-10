@@ -46,8 +46,7 @@
 	let watchId: number | null = null;
 	let expandedRoute: string | null = null;
 	let tourLine: L.Polyline | null = null;
-	let beaconFireMarker: L.Marker | null = null;
-	let beaconResponderMarker: L.Marker | null = null;
+	let beaconMarkers: L.Marker[] = [];
 	let beaconMidpointMarker: L.Marker | null = null;
 	let beaconCircle: L.Circle | null = null;
 	let routePreviewIds = new Set<string>();
@@ -661,49 +660,40 @@
 		}
 	}
 
-	// Render beacon overlays (fire marker, midpoint, radius circle)
+	// Render beacon overlays (fire markers for creator + all participants, midpoint, radius circle)
 	$: if (map && leaflet) {
 		if ($beaconStore.active && $beaconStore.midpoint && $beaconStore.beacon) {
 			const beacon = $beaconStore.beacon;
 			const midpoint = $beaconStore.midpoint;
 
-			// Fire emoji at creator's location
-			if (!beaconFireMarker) {
-				const fireIcon = leaflet.divIcon({
-					className: 'custom-marker',
-					html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">🔥</div>',
-					iconSize: [28, 28],
-					iconAnchor: [14, 28],
-					popupAnchor: [0, -28]
-				});
-				beaconFireMarker = leaflet.marker([beacon.creator_lat, beacon.creator_lng], {
+			// Clear old fire markers
+			beaconMarkers.forEach(m => m.remove());
+			beaconMarkers = [];
+
+			const fireIcon = leaflet.divIcon({
+				className: 'custom-marker',
+				html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">🔥</div>',
+				iconSize: [28, 28],
+				iconAnchor: [14, 28],
+				popupAnchor: [0, -28]
+			});
+
+			// Creator marker
+			const creatorMarker = leaflet.marker([beacon.creator_lat, beacon.creator_lng], {
+				icon: fireIcon,
+				zIndexOffset: 2500
+			}).addTo(map);
+			creatorMarker.bindPopup(`<b>${beacon.creator_name}</b>`);
+			beaconMarkers.push(creatorMarker);
+
+			// Participant markers
+			for (const p of beacon.participants) {
+				const pMarker = leaflet.marker([p.lat, p.lng], {
 					icon: fireIcon,
 					zIndexOffset: 2500
 				}).addTo(map);
-				beaconFireMarker.bindPopup(`<b>${beacon.creator_name}</b>`);
-			} else {
-				beaconFireMarker.setLatLng([beacon.creator_lat, beacon.creator_lng]);
-			}
-
-			// Responder fire emoji at their location
-			if ($beaconStore.responderLocation) {
-				const responderLoc = $beaconStore.responderLocation;
-				if (!beaconResponderMarker) {
-					const responderIcon = leaflet.divIcon({
-						className: 'custom-marker',
-						html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">🔥</div>',
-						iconSize: [28, 28],
-						iconAnchor: [14, 28],
-						popupAnchor: [0, -28]
-					});
-					beaconResponderMarker = leaflet.marker(responderLoc, {
-						icon: responderIcon,
-						zIndexOffset: 2500
-					}).addTo(map);
-					beaconResponderMarker.bindPopup('<b>You</b>');
-				} else {
-					beaconResponderMarker.setLatLng(responderLoc);
-				}
+				pMarker.bindPopup(`<b>${p.name}</b>`);
+				beaconMarkers.push(pMarker);
 			}
 
 			// Midpoint marker
@@ -743,8 +733,8 @@
 				beaconCircle.setLatLng(midpoint);
 			}
 		} else {
-			if (beaconFireMarker) { beaconFireMarker.remove(); beaconFireMarker = null; }
-			if (beaconResponderMarker) { beaconResponderMarker.remove(); beaconResponderMarker = null; }
+			beaconMarkers.forEach(m => m.remove());
+			beaconMarkers = [];
 			if (beaconMidpointMarker) { beaconMidpointMarker.remove(); beaconMidpointMarker = null; }
 			if (beaconCircle) { beaconCircle.remove(); beaconCircle = null; }
 		}
