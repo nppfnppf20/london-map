@@ -15,6 +15,7 @@ interface BeaconSession {
 interface BeaconNotification {
 	token: string;
 	participantName: string;
+	imagePath: string | null;
 	timestamp: string;
 }
 
@@ -80,6 +81,7 @@ function createBeaconSessionStore() {
 							notifications.push({
 								token,
 								participantName: newJoiner.name,
+								imagePath: newJoiner.image_path || null,
 								timestamp: new Date().toISOString()
 							});
 						}
@@ -163,6 +165,10 @@ function createBeaconSessionStore() {
 				saveTokensToStorage(sessions);
 				return { ...state, sessions, notifications };
 			});
+		},
+
+		shiftNotification() {
+			update(state => ({ ...state, notifications: state.notifications.slice(1) }));
 		},
 
 		clearNotifications() {

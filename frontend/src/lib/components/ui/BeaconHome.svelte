@@ -28,12 +28,7 @@
 		beaconSessionStore.removeSession(token);
 	}
 
-	// Clear notifications when viewing this tab
-	$effect(() => {
-		if (notifications.length > 0) {
-			beaconSessionStore.clearNotifications();
-		}
-	});
+	// Notifications are now consumed by BeaconJoinCelebration in +page.svelte
 </script>
 
 <div class="beacon-home">

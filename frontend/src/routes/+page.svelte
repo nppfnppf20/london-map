@@ -18,6 +18,7 @@
 	import BeaconsModal from '$components/ui/BeaconsModal.svelte';
 	import BeaconPanel from '$components/ui/BeaconPanel.svelte';
 	import BeaconHome from '$components/ui/BeaconHome.svelte';
+	import BeaconJoinCelebration from '$components/ui/BeaconJoinCelebration.svelte';
 	import { shareLinksApi } from '$services/api';
 	import { placesStore } from '$stores/places';
 	import { collectionsStore } from '$stores/collections';
@@ -67,6 +68,29 @@
 			menuTab = 'Lists';
 		}
 	});
+
+	let beaconContextActive = $derived(
+		$beaconStore.active || $beaconStore.joining || menuTab === 'Beacons'
+	);
+	let pendingCelebration = $derived($beaconSessionStore.notifications[0] ?? null);
+	let showCelebration = $state(false);
+	let celebrationData = $state<{ name: string; imagePath: string | null } | null>(null);
+
+	$effect(() => {
+		if (beaconContextActive && pendingCelebration && !showCelebration) {
+			celebrationData = {
+				name: pendingCelebration.participantName,
+				imagePath: pendingCelebration.imagePath
+			};
+			showCelebration = true;
+		}
+	});
+
+	function onCelebrationDone() {
+		showCelebration = false;
+		celebrationData = null;
+		beaconSessionStore.shiftNotification();
+	}
 
 	function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
 		const next = new Set(filterScopes);
@@ -687,6 +711,14 @@
 				<button class="share-modal-close" onclick={() => shareModalOpen = false}>Done</button>
 			</div>
 		</div>
+	{/if}
+
+	{#if showCelebration && celebrationData}
+		<BeaconJoinCelebration
+			name={celebrationData.name}
+			imagePath={celebrationData.imagePath}
+			onDone={onCelebrationDone}
+		/>
 	{/if}
 </main>
 
