@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { beaconStore } from '$stores/beacon';
+	import { beaconSessionStore } from '$stores/beaconSession';
 	import { placesStore } from '$stores/places';
 	import { uploadBeaconImage } from '$services/storage';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
@@ -74,9 +75,13 @@
 		onSelectOnMap();
 	}
 
-	function finishJoin(imagePath?: string) {
+	async function finishJoin(imagePath?: string) {
 		if (!pendingCoords) return;
-		beaconStore.join(joinName.trim(), pendingCoords.lat, pendingCoords.lng, imagePath);
+		const token = $beaconStore.token;
+		const success = await beaconStore.join(joinName.trim(), pendingCoords.lat, pendingCoords.lng, imagePath);
+		if (success && token) {
+			beaconSessionStore.addSession(token, 'joiner', joinName.trim());
+		}
 	}
 
 	async function handleCapture(blob: Blob) {

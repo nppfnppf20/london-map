@@ -1,10 +1,11 @@
 <script lang="ts">
-	const items = ['Places', 'Lists', 'Tours'] as const;
+	const items = ['Places', 'Lists', 'Tours', 'Beacons'] as const;
 	type MenuTab = (typeof items)[number];
 
-	let { value = 'Lists', onSelect = (_tab: MenuTab) => {} } = $props<{
+	let { value = 'Lists', onSelect = (_tab: MenuTab) => {}, badge = 0 } = $props<{
 		value?: MenuTab;
 		onSelect?: (tab: MenuTab) => void;
+		badge?: number;
 	}>();
 </script>
 
@@ -19,6 +20,9 @@
 				onclick={() => onSelect(item)}
 			>
 				{item}
+				{#if item === 'Beacons' && badge > 0}
+					<span class="menu-nav-badge">{badge}</span>
+				{/if}
 			</button>
 		{/each}
 	</div>
@@ -31,6 +35,7 @@
 	}
 
 	.menu-nav-item {
+		position: relative;
 		background: transparent;
 		color: #6b7280;
 		letter-spacing: 0.01em;
@@ -41,5 +46,21 @@
 		background: white;
 		color: #111827;
 		box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+	}
+
+	.menu-nav-badge {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: #ef4444;
+		color: white;
+		font-size: 10px;
+		font-weight: 700;
+		line-height: 16px;
+		text-align: center;
 	}
 </style>

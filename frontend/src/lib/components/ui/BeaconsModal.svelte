@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { beaconsApi } from '$services/api';
 	import { uploadBeaconImage } from '$services/storage';
+	import { beaconSessionStore } from '$stores/beaconSession';
 	import { CATEGORY_LABELS } from '$utils/map-helpers';
 	import BeaconCamera from './BeaconCamera.svelte';
 	import type { Category } from '$types';
@@ -163,6 +164,7 @@
 				...(imagePath ? { image_path: imagePath } : {})
 			});
 			generatedUrl = `${window.location.origin}/beacon/${beacon.token}`;
+			beaconSessionStore.addSession(beacon.token, 'creator', creatorName.trim(), beacon);
 			step = 'link';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create beacon';

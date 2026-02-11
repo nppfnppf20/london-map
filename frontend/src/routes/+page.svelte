@@ -17,6 +17,7 @@
 	import ExploreModal from '$components/ui/ExploreModal.svelte';
 	import BeaconsModal from '$components/ui/BeaconsModal.svelte';
 	import BeaconPanel from '$components/ui/BeaconPanel.svelte';
+	import BeaconHome from '$components/ui/BeaconHome.svelte';
 	import { shareLinksApi } from '$services/api';
 	import { placesStore } from '$stores/places';
 	import { collectionsStore } from '$stores/collections';
@@ -31,6 +32,7 @@
 	import { authStore } from '$stores/auth';
 	import { shareStore } from '$stores/share';
 	import { beaconStore } from '$stores/beacon';
+	import { beaconSessionStore, beaconBadgeCount } from '$stores/beaconSession';
 	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 	import { goto } from '$app/navigation';
 
@@ -48,7 +50,7 @@
 	let pinCoords = $state<[number, number] | null>(null);
 	let pinAction = $state<'add' | 'nearby' | 'beacon' | 'beaconJoin' | null>(null);
 	let beaconPinCoords = $state<[number, number] | null>(null);
-	let menuTab = $state<'Places' | 'Lists' | 'Tours'>('Lists');
+	let menuTab = $state<'Places' | 'Lists' | 'Tours' | 'Beacons'>('Lists');
 	let filterScopes = $state<Set<'Friends' | 'Friends of Friends' | 'Public' | 'Private'>>(
 		new Set(['Public'])
 	);
@@ -72,6 +74,7 @@
 	$effect(() => {
 		placesStore.fetchAll();
 		collectionsStore.fetchAll();
+		beaconSessionStore.init();
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(pos) => {
@@ -91,6 +94,7 @@
 		} else if (menuTab === 'Tours') {
 			layerStore.showAllRoutes();
 		}
+		// Beacons tab doesn't change map layers
 	});
 
 	$effect(() => {
@@ -323,8 +327,11 @@
 						</button>
 					</div>
 				{/if}
-					<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} />
+					<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} badge={$beaconBadgeCount} />
 				<div class="menu-divider ui-divider" aria-hidden="true"></div>
+				{#if menuTab === 'Beacons'}
+					<BeaconHome />
+				{:else}
 				<div class="filter-row ui-chip-row" aria-label="Filter scope">
 					<button
 						type="button"
@@ -456,6 +463,7 @@
 						{/if}
 					{/if}
 				</div>
+				{/if}
 				{/if}
 			{/if}
 		</div>
