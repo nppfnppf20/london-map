@@ -80,33 +80,26 @@ export async function getTransitTimesForParticipants(
 	return results;
 }
 
-export function generateCandidates(people: LatLng[]): LatLng[] {
-	const centroid: LatLng = {
-		lat: people.reduce((sum, p) => sum + p.lat, 0) / people.length,
-		lng: people.reduce((sum, p) => sum + p.lng, 0) / people.length
-	};
-
-	const candidates: LatLng[] = [centroid];
+export function generateCandidates(center: LatLng, people: LatLng[]): LatLng[] {
+	const candidates: LatLng[] = [center];
 
 	for (const person of people) {
 		candidates.push({
-			lat: centroid.lat + (person.lat - centroid.lat) * 0.25,
-			lng: centroid.lng + (person.lng - centroid.lng) * 0.25
+			lat: center.lat + (person.lat - center.lat) * 0.25,
+			lng: center.lng + (person.lng - center.lng) * 0.25
 		});
 	}
 
 	return candidates;
 }
 
-export async function findBestMidpoints(
+async function evaluateCandidates(
+	candidates: LatLng[],
 	people: { name: string; lat: number; lng: number }[]
-): Promise<MidpointResult> {
-	const candidates = generateCandidates(people);
-
+) {
 	const evaluations = await Promise.all(
 		candidates.map(async (candidate) => {
 			const times = await getTransitTimesForParticipants(people, candidate);
-			const validTimes = times.filter(t => t.durationSeconds >= 0);
 			const travelTimes = times.map(t => ({
 				name: t.name,
 				durationMinutes: t.durationSeconds >= 0 ? Math.round(t.durationSeconds / 60) : -1
@@ -122,13 +115,46 @@ export async function findBestMidpoints(
 		})
 	);
 
-	const validEvals = evaluations.filter(e =>
+	return evaluations.filter(e =>
 		e.travelTimes.some(t => t.durationMinutes >= 0)
 	);
+}
+
+export async function findBestMidpoints(
+	people: { name: string; lat: number; lng: number }[]
+): Promise<MidpointResult> {
+	const centroid: LatLng = {
+		lat: people.reduce((sum, p) => sum + p.lat, 0) / people.length,
+		lng: people.reduce((sum, p) => sum + p.lng, 0) / people.length
+	};
+
+	// Round 1: test the centroid to find who's disadvantaged
+	const centroidTimes = await getTransitTimesForParticipants(people, centroid);
+	const validCentroidTimes = centroidTimes.filter(t => t.durationSeconds >= 0);
+
+	let shiftedCenter = centroid;
+
+	if (validCentroidTimes.length >= 2) {
+		// Find the person with the longest travel time
+		const longest = validCentroidTimes.reduce((a, b) =>
+			b.durationSeconds > a.durationSeconds ? b : a
+		);
+		const longestPerson = people.find(p => p.name === longest.name);
+
+		if (longestPerson) {
+			// Shift the center 40% toward the most disadvantaged person
+			shiftedCenter = {
+				lat: centroid.lat + (longestPerson.lat - centroid.lat) * 0.4,
+				lng: centroid.lng + (longestPerson.lng - centroid.lng) * 0.4
+			};
+		}
+	}
+
+	// Round 2: generate candidates around the shifted center
+	const candidates = generateCandidates(shiftedCenter, people);
+	const validEvals = await evaluateCandidates(candidates, people);
 
 	if (validEvals.length === 0) {
-		// Fallback to centroid with empty times
-		const centroid = candidates[0];
 		const fallbackStrategy: MidpointStrategy = {
 			midpoint: centroid,
 			travelTimes: people.map(p => ({ name: p.name, durationMinutes: -1 })),
@@ -138,15 +164,32 @@ export async function findBestMidpoints(
 		return { strategies: { lowestTotal: fallbackStrategy, fairest: fallbackStrategy } };
 	}
 
-	const lowestTotalEval = validEvals.reduce((best, e) =>
+	// Include the centroid from round 1 so lowestTotal can pick it if it's better
+	const centroidTravelTimes = centroidTimes.map(t => ({
+		name: t.name,
+		durationMinutes: t.durationSeconds >= 0 ? Math.round(t.durationSeconds / 60) : -1
+	}));
+	const centroidValidMinutes = centroidTravelTimes.filter(t => t.durationMinutes >= 0).map(t => t.durationMinutes);
+	const centroidEval = centroidValidMinutes.length > 0 ? [{
+		candidate: centroid,
+		travelTimes: centroidTravelTimes,
+		totalMinutes: centroidValidMinutes.reduce((sum, m) => sum + m, 0),
+		fairnessScore: centroidValidMinutes.length >= 2
+			? Math.max(...centroidValidMinutes) - Math.min(...centroidValidMinutes)
+			: 0,
+		maxMinutes: Math.max(...centroidValidMinutes)
+	}] : [];
+	const allEvals = [...validEvals, ...centroidEval];
+
+	const lowestTotalEval = allEvals.reduce((best, e) =>
 		e.totalMinutes < best.totalMinutes ? e : best
 	);
 
-	const fairestEval = validEvals.reduce((best, e) =>
+	const fairestEval = allEvals.reduce((best, e) =>
 		e.maxMinutes < best.maxMinutes ? e : best
 	);
 
-	function toStrategy(e: typeof validEvals[0]): MidpointStrategy {
+	function toStrategy(e: typeof allEvals[0]): MidpointStrategy {
 		return {
 			midpoint: e.candidate,
 			travelTimes: e.travelTimes,

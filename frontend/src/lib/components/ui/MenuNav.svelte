@@ -1,12 +1,15 @@
 <script lang="ts">
-	const items = ['Places', 'Lists', 'Tours', 'Beacons'] as const;
-	type MenuTab = (typeof items)[number];
+	const allItems = ['Places', 'Lists', 'Tours', 'Beacons'] as const;
+	type MenuTab = (typeof allItems)[number];
 
-	let { value = 'Lists', onSelect = (_tab: MenuTab) => {}, badge = 0 } = $props<{
+	let { value = 'Lists', onSelect = (_tab: MenuTab) => {}, badge = 0, showBeacons = false } = $props<{
 		value?: MenuTab;
 		onSelect?: (tab: MenuTab) => void;
 		badge?: number;
+		showBeacons?: boolean;
 	}>();
+
+	let items = $derived(showBeacons ? allItems : allItems.filter(i => i !== 'Beacons'));
 </script>
 
 <nav class="menu-nav" aria-label="Menu sections">

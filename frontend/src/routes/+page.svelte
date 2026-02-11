@@ -58,6 +58,16 @@
 	let shareUrl = $state('');
 	let shareCopied = $state(false);
 
+	let showBeacons = $derived(
+		$beaconStore.active || $beaconStore.joining || $beaconSessionStore.sessions.length > 0
+	);
+
+	$effect(() => {
+		if (!showBeacons && menuTab === 'Beacons') {
+			menuTab = 'Lists';
+		}
+	});
+
 	function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
 		const next = new Set(filterScopes);
 		if (next.has(scope)) {
@@ -327,7 +337,7 @@
 						</button>
 					</div>
 				{/if}
-					<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} badge={$beaconBadgeCount} />
+					<MenuNav value={menuTab} onSelect={(tab) => { menuTab = tab; }} badge={$beaconBadgeCount} showBeacons={showBeacons} />
 				<div class="menu-divider ui-divider" aria-hidden="true"></div>
 				{#if menuTab === 'Beacons'}
 					<BeaconHome />
