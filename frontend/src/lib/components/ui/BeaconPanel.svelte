@@ -3,7 +3,6 @@
 	import { beaconSessionStore } from '$stores/beaconSession';
 	import { placesStore } from '$stores/places';
 	import { uploadBeaconImage } from '$services/storage';
-	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
 	import BeaconCamera from './BeaconCamera.svelte';
 
 	interface Props {
@@ -29,12 +28,6 @@
 	});
 
 	const beacon = $derived($beaconStore.beacon);
-	const categoryNames = $derived(
-		beacon?.categories?.map(c => CATEGORY_LABELS[c] || c).join(', ') || 'spots'
-	);
-	const beaconPlaces = $derived(
-		$placesStore.places.filter(p => $beaconStore.placeIds.includes(p.id))
-	);
 	const strategies = $derived($beaconStore.strategies);
 	const activeStrategy = $derived($beaconStore.activeStrategy);
 	const currentStrategy = $derived(strategies ? strategies[activeStrategy] : null);
@@ -200,53 +193,67 @@
 	</div>
 
 {:else if $beaconStore.active && beacon}
+	{@const travelTimeMap = new Map(travelTimes.map(tt => [tt.name, tt]))}
 	<div class="beacon-answered">
 		<div class="beacon-answered-header">
-			<h3 class="beacon-answered-title">{beacon.creator_name}'s Beacon is lit</h3>
+			<h3 class="beacon-answered-title">Beacon is Lit</h3>
 			<button class="beacon-banner-clear" onclick={() => { beaconStore.clear(); placesStore.fetchAll(); }}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M18 6L6 18M6 6l12 12"/>
 				</svg>
 			</button>
 		</div>
-		<p class="beacon-answered-category">{beacon.creator_name} is looking for {categoryNames}</p>
-		{#if travelTimes.length > 0}
-			{#if strategiesDiffer}
-				<div class="beacon-strategy-toggle">
-					<button
-						class="strategy-btn"
-						class:active={activeStrategy === 'fairest'}
-						onclick={() => beaconStore.setStrategy('fairest')}
-					>Fairest</button>
-					<button
-						class="strategy-btn"
-						class:active={activeStrategy === 'lowestTotal'}
-						onclick={() => beaconStore.setStrategy('lowestTotal')}
-					>Quickest total</button>
-				</div>
-			{/if}
-			<div class="beacon-travel-times">
-				{#each travelTimes as tt}
-					<p class="beacon-travel-time">
-						{tt.name} — {tt.durationMinutes >= 0 ? `${tt.durationMinutes} min by transit` : 'transit time unavailable'}
-					</p>
-				{/each}
+		{#if strategiesDiffer}
+			<div class="beacon-strategy-toggle">
+				<button
+					class="strategy-btn"
+					class:active={activeStrategy === 'fairest'}
+					onclick={() => beaconStore.setStrategy('fairest')}
+				>Fairest</button>
+				<button
+					class="strategy-btn"
+					class:active={activeStrategy === 'lowestTotal'}
+					onclick={() => beaconStore.setStrategy('lowestTotal')}
+				>Quickest total</button>
 			</div>
 		{/if}
-		<p class="beacon-answered-results">{categoryNames} near your middle point</p>
 	</div>
-	<div class="menu-divider ui-divider" aria-hidden="true"></div>
 	<div class="menu-list ui-list">
-		{#each beaconPlaces as place}
-			<div class="menu-item-card ui-card">
-				<div class="menu-item-main">
-					<p class="menu-item-name">
-						<span class="menu-item-dot ui-dot" style={`background:${CATEGORY_COLORS[place.category]}`}></span>
-						{place.name}
+		<div class="beacon-person-card ui-card">
+			<div class="beacon-person-photo-wrap">
+				{#if beacon.image_path}
+					<img src={beacon.image_path} alt={beacon.creator_name} class="beacon-person-photo" />
+				{:else}
+					<span class="beacon-person-avatar">{beacon.creator_name.charAt(0).toUpperCase()}</span>
+				{/if}
+			</div>
+			<div class="beacon-person-info">
+				<p class="beacon-person-name">{beacon.creator_name}</p>
+				{#if travelTimeMap.has(beacon.creator_name)}
+					{@const creatorTT = travelTimeMap.get(beacon.creator_name)}
+					<p class="beacon-person-meta">
+						{creatorTT && creatorTT.durationMinutes >= 0 ? `${creatorTT.durationMinutes} min` : 'time unavailable'}
 					</p>
-					<p class="menu-item-meta ui-meta">
-						<span>{CATEGORY_LABELS[place.category]}</span>
-					</p>
+				{/if}
+			</div>
+		</div>
+		{#each beacon.participants as p}
+			<div class="beacon-person-card ui-card">
+				<div class="beacon-person-photo-wrap">
+					{#if p.image_path}
+						<img src={p.image_path} alt={p.name} class="beacon-person-photo" />
+					{:else}
+						<span class="beacon-person-avatar">{p.name.charAt(0).toUpperCase()}</span>
+					{/if}
+				</div>
+				<div class="beacon-person-info">
+					<p class="beacon-person-name">{p.name}</p>
+					{#if travelTimeMap.has(p.name)}
+						{@const pTT = travelTimeMap.get(p.name)}
+						<p class="beacon-person-meta">
+							{pTT && pTT.durationMinutes >= 0 ? `${pTT.durationMinutes} min` : 'time unavailable'}
+						</p>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -291,5 +298,53 @@
 	.beacon-camera-active {
 		position: relative;
 		z-index: 1200;
+	}
+
+	.beacon-person-card {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.beacon-person-photo-wrap {
+		flex-shrink: 0;
+	}
+
+	.beacon-person-photo {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
+	.beacon-person-avatar {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: #e5e7eb;
+		color: #6b7280;
+		font-size: 18px;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.beacon-person-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.beacon-person-name {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: #111827;
+	}
+
+	.beacon-person-meta {
+		margin: 2px 0 0;
+		font-size: 12px;
+		color: #6b7280;
 	}
 </style>
