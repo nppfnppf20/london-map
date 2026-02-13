@@ -1,0 +1,25 @@
+{
+"type": "FeatureCollection",
+"name": "Places to visit",
+"features": [
+{ "type": "Feature", "properties": { "Name": "mumok - Museum moderner Kunst Stiftung Ludwig Wien", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3578331, 48.2037823, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Albertina", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3681824, 48.2046992, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Shoah Wall of Names Memorial", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3544322, 48.2153253, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Prag-Rudnicker factory", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3496335, 48.2028292, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "keys against forhgiveness Memorial", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3641486, 48.2209414, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Palais Ephrussi", "description": "Hare with Amber Eyes" }, "geometry": { "type": "Point", "coordinates": [ 16.362455, 48.2135633, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Stadttempel-Lazar & Anna married\n", "description": "Lazar and Anna (Emmo's parents)" }, "geometry": { "type": "Point", "coordinates": [ 16.374808, 48.2105228, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Pazmanitengasse-Liesl and Emmo married\n", "description": "And Jacob and Mina" }, "geometry": { "type": "Point", "coordinates": [ 16.3852739, 48.2222106, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Memorial to War and Fascism", "description": "Albertinaplatz" }, "geometry": { "type": "Point", "coordinates": [ 16.3689051, 48.2042294, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Wien Westbahnhof", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.337702, 48.1967991, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Judenplatz Holocaust Memorial", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3693962, 48.2115771, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Morzinplatz-memorial to victims of national socialism", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.374738, 48.2129223, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Schöne Perle Restaurant walking Tour\n", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3773276, 48.2187165, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "assembly point for deportation", "description": "Kleine Sperlgasse 2A" }, "geometry": { "type": "Point", "coordinates": [ 16.3777857, 48.2153294, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Garison synagogue site", "description": "where Lili & Ernst got married" }, "geometry": { "type": "Point", "coordinates": [ 16.3686363, 48.2185977, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Café Landtmann", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3615167, 48.2115469, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Prag-Rudnicker shop 1st site", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3611465, 48.2020208, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Prag-Rudnicker shop 2nd site", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.358238, 48.2011153, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Academy of Fine Arts Vienna", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3652434, 48.20162, 0.0 ] } }
+]
+}

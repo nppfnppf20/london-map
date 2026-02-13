@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "Untitled layer",
+"features": [
+{ "type": "Feature", "properties": { "Name": "Zollergasse 2" }, "geometry": { "type": "Point", "coordinates": [ 16.3513454, 48.1991426, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "NENI am Wasser-restaurant" }, "geometry": { "type": "Point", "coordinates": [ 16.3736468, 48.2169317, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Schottenring Metro" }, "geometry": { "type": "Point", "coordinates": [ 16.37128, 48.217113, 0.0 ] } }
+]
+}

@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "Adresses",
+"features": [
+{ "type": "Feature", "properties": { "Name": "Marktgasse 58 Home Liesl & Emmo", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3573157, 48.2287103, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Martin Schwitcz Flat\n", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.2545745, 48.2072646, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Peter & Inge Flat\n", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3409236, 48.2517443, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Lili Kraus Home\n", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3513454, 48.1991426, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Ruth's Deportation Home\n", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3701464, 48.2160618, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Gonzagagasse 8-Eisenstadter Flats\n", "description": null }, "geometry": { "type": "Point", "coordinates": [ 16.3729885, 48.2136891, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Jacob & Mina Home Franz-Hochedlinger-Gasse 26", "description": "Jacob-Ruth's maternal grandfather" }, "geometry": { "type": "Point", "coordinates": [ 16.3742693, 48.2176947, 0.0 ] } }
+]
+}

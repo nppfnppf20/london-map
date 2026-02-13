@@ -3,7 +3,8 @@ import { writable } from 'svelte/store';
 const INITIAL_ROUTES: Record<string, string> = {
 	'Holborn Churches Route': '#8b5cf6',
 	'Ancient City Tour': '#dc2626',
-	'Mayfair Rainy Stroll': '#22c55e'
+	'Mayfair Rainy Stroll': '#22c55e',
+	'Vienna Walk': '#f59e0b'
 };
 
 function createRoutesStore() {
