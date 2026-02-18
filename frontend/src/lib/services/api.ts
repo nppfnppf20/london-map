@@ -16,7 +16,8 @@ import type {
 	Beacon,
 	CreateBeaconInput,
 	MidpointResult,
-	Comment
+	Comment,
+	LikeStatus
 } from '$types';
 import { supabase } from '$services/supabase';
 
@@ -305,6 +306,20 @@ export const beaconsApi = {
 		return request<MidpointResult>(`/beacons/${token}/midpoint`, {
 			method: 'POST'
 		});
+	}
+};
+
+export const likesApi = {
+	getStatus: (placeId: string): Promise<LikeStatus> => {
+		return request<LikeStatus>(`/places/${placeId}/like`);
+	},
+
+	toggle: (placeId: string): Promise<LikeStatus> => {
+		return request<LikeStatus>(`/places/${placeId}/like`, { method: 'POST' });
+	},
+
+	getMyLikes: (): Promise<Place[]> => {
+		return request<Place[]>('/profiles/me/likes');
 	}
 };
 

@@ -165,6 +165,11 @@ export interface AuthUser {
 	role: Role;
 }
 
+export interface LikeStatus {
+	liked: boolean;
+	count: number;
+}
+
 export interface Comment {
 	id: string;
 	place_id: string;

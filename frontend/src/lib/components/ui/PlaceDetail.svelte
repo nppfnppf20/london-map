@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { Place, TravelProfile, Comment } from '$types';
+	import type { Place, TravelProfile, Comment, LikeStatus } from '$types';
 	import { getCategoryColor, CATEGORY_LABELS } from '$utils/map-helpers';
 	import { directionsStore, formatDuration, formatDistance, getGoogleMapsUrl } from '$stores/directions';
-	import { commentsApi } from '$services/api';
+	import { commentsApi, likesApi } from '$services/api';
 	import { authStore } from '$stores/auth';
 	import PlaceImageGallery from '$components/ui/PlaceImageGallery.svelte';
 
@@ -16,6 +16,9 @@ let { place, onClose, onAddTo }: Props = $props();
 let gettingLocation = $state(false);
 let locationError = $state<string | null>(null);
 
+let likeStatus = $state<LikeStatus>({ liked: false, count: 0 });
+let likeToggling = $state(false);
+
 let comments = $state<Comment[]>([]);
 let commentsLoading = $state(false);
 let newComment = $state('');
@@ -26,11 +29,38 @@ let commentInputEl: HTMLTextAreaElement | undefined;
 
 $effect(() => {
 	if (place) {
+		likeStatus = { liked: false, count: 0 };
 		loadComments(place.id);
+		loadLikeStatus(place.id);
 	} else {
 		comments = [];
+		likeStatus = { liked: false, count: 0 };
 	}
 });
+
+async function loadLikeStatus(placeId: string) {
+	try {
+		likeStatus = await likesApi.getStatus(placeId);
+	} catch {
+		// silently fail
+	}
+}
+
+async function handleToggleLike() {
+	if (!place || likeToggling) return;
+	if (!$authStore.user) return;
+	likeToggling = true;
+	// Optimistic update
+	const prev = likeStatus;
+	likeStatus = { liked: !prev.liked, count: prev.liked ? prev.count - 1 : prev.count + 1 };
+	try {
+		likeStatus = await likesApi.toggle(place.id);
+	} catch {
+		likeStatus = prev; // revert on failure
+	} finally {
+		likeToggling = false;
+	}
+}
 
 async function loadComments(placeId: string) {
 	commentsLoading = true;
@@ -213,7 +243,19 @@ function formatRelativeTime(dateStr: string): string {
 				</div>
 				<div class="action-buttons secondary">
 					<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
-					<button class="meta-btn" type="button" disabled>Like</button>
+					<button
+						class="meta-btn like-btn"
+						class:liked={likeStatus.liked}
+						type="button"
+						onclick={handleToggleLike}
+						disabled={!$authStore.user || likeToggling}
+						title={$authStore.user ? (likeStatus.liked ? 'Unlike' : 'Like') : 'Sign in to like'}
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill={likeStatus.liked ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
+							<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+						</svg>
+						{#if likeStatus.count > 0}{likeStatus.count}{:else}Like{/if}
+					</button>
 					<button class="meta-btn" type="button" onclick={scrollToComments}>Comment</button>
 				</div>
 				{#if locationError}
@@ -471,6 +513,18 @@ function formatRelativeTime(dateStr: string): string {
 	.meta-btn:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.like-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.like-btn.liked {
+		background: #fef2f2;
+		color: #ef4444;
 	}
 
 	.error-text {

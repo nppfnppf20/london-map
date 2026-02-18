@@ -3,6 +3,7 @@ import multer from 'multer';
 import * as placesController from '../controllers/places.js';
 import * as placeImagesController from '../controllers/place-images.js';
 import * as commentsController from '../controllers/comments.js';
+import * as likesController from '../controllers/likes.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -28,5 +29,9 @@ router.delete('/images/:imageId', requireAuth, placeImagesController.deleteImage
 router.get('/:id/comments', optionalAuth, commentsController.getComments);
 router.post('/:id/comments', requireAuth, commentsController.addComment);
 router.delete('/comments/:id', requireAuth, commentsController.deleteComment);
+
+// Likes
+router.get('/:id/like', optionalAuth, likesController.getLikeStatus);
+router.post('/:id/like', requireAuth, likesController.toggleLike);
 
 export default router;

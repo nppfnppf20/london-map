@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { authStore } from '$stores/auth';
-	import { profilesApi } from '$services/api';
+	import { profilesApi, likesApi } from '$services/api';
 	import { goto } from '$app/navigation';
-	import type { Profile } from '$types';
+	import { CATEGORY_LABELS, CATEGORY_COLORS } from '$utils/map-helpers';
+	import type { Profile, Place, Category } from '$types';
 
 	let profile = $state<Profile | null>(null);
 	let loading = $state(true);
@@ -10,6 +11,17 @@
 	let editing = $state(false);
 	let editUsername = $state('');
 	let saving = $state(false);
+
+	let likedPlaces = $state<Place[]>([]);
+	let likedLoading = $state(false);
+
+	let likedByCategory = $derived(
+		likedPlaces.reduce<Partial<Record<Category, Place[]>>>((acc, place) => {
+			(acc[place.category] ??= []).push(place);
+			return acc;
+		}, {})
+	);
+	let likedCategories = $derived(Object.keys(likedByCategory) as Category[]);
 
 	$effect(() => {
 		if (!$authStore.loading && !$authStore.user) {
@@ -20,8 +32,20 @@
 	$effect(() => {
 		if ($authStore.user) {
 			loadProfile();
+			loadLikedPlaces();
 		}
 	});
+
+	async function loadLikedPlaces() {
+		likedLoading = true;
+		try {
+			likedPlaces = await likesApi.getMyLikes();
+		} catch {
+			// silently fail — not critical
+		} finally {
+			likedLoading = false;
+		}
+	}
 
 	async function loadProfile() {
 		loading = true;
@@ -130,6 +154,36 @@
 			{#if error}
 				<p class="error">{error}</p>
 			{/if}
+
+			<div class="liked-section">
+				<h2 class="section-title">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+						<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+					</svg>
+					Liked
+				</h2>
+
+				{#if likedLoading}
+					<p class="liked-empty">Loading…</p>
+				{:else if likedPlaces.length === 0}
+					<p class="liked-empty">No liked places yet.</p>
+				{:else}
+					{#each likedCategories as category}
+						<div class="liked-category">
+							<div class="liked-category-header">
+								<span class="liked-category-dot" style="background:{CATEGORY_COLORS[category]}"></span>
+								<span class="liked-category-name">{CATEGORY_LABELS[category]}</span>
+								<span class="liked-category-count">{likedByCategory[category]?.length}</span>
+							</div>
+							<div class="liked-category-places">
+								{#each likedByCategory[category] ?? [] as place}
+									<div class="liked-place">{place.name}</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				{/if}
+			</div>
 
 			<div class="actions">
 				{#if profile.role === 'admin'}
@@ -332,6 +386,80 @@
 		padding: var(--spacing-sm) var(--spacing-md);
 		border-radius: var(--radius-sm);
 		margin: 0;
+	}
+
+	.liked-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.section-title {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 700;
+		color: #ef4444;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.liked-empty {
+		font-size: 13px;
+		color: #9ca3af;
+		font-style: italic;
+		margin: 0;
+	}
+
+	.liked-category {
+		background: white;
+		border-radius: var(--radius-lg);
+		border: 1px solid #e5e7eb;
+		overflow: hidden;
+	}
+
+	.liked-category-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 14px;
+		border-bottom: 1px solid #f3f4f6;
+	}
+
+	.liked-category-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.liked-category-name {
+		flex: 1;
+		font-size: 13px;
+		font-weight: 700;
+		color: #111827;
+	}
+
+	.liked-category-count {
+		font-size: 12px;
+		color: #9ca3af;
+		font-weight: 600;
+	}
+
+	.liked-category-places {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.liked-place {
+		padding: 9px 14px;
+		font-size: 14px;
+		color: #374151;
+		border-bottom: 1px solid #f9fafb;
+	}
+
+	.liked-place:last-child {
+		border-bottom: none;
 	}
 
 	.actions {
