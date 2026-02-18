@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Place } from '$types';
 	import { getCategoryColor, CATEGORY_LABELS } from '$utils/map-helpers';
+	import PlaceImageGallery from '$components/ui/PlaceImageGallery.svelte';
 
 	interface Props {
 		place: Place | null;
@@ -62,6 +63,7 @@
 			</div>
 
 			<div class="content">
+				<PlaceImageGallery audioPath={place.audio_path} images={place.images || []} placeId={place.id} />
 				{#if place.description}
 					<div class="description">
 						{#each place.description.split('\n\n') as paragraph}
