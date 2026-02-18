@@ -15,7 +15,8 @@ import type {
 	ResolvedShareLink,
 	Beacon,
 	CreateBeaconInput,
-	MidpointResult
+	MidpointResult,
+	Comment
 } from '$types';
 import { supabase } from '$services/supabase';
 
@@ -304,6 +305,23 @@ export const beaconsApi = {
 		return request<MidpointResult>(`/beacons/${token}/midpoint`, {
 			method: 'POST'
 		});
+	}
+};
+
+export const commentsApi = {
+	getForPlace: (placeId: string): Promise<Comment[]> => {
+		return request<Comment[]>(`/places/${placeId}/comments`);
+	},
+
+	create: (placeId: string, body: string): Promise<Comment> => {
+		return request<Comment>(`/places/${placeId}/comments`, {
+			method: 'POST',
+			body: JSON.stringify({ body })
+		});
+	},
+
+	delete: (commentId: string): Promise<void> => {
+		return request<void>(`/places/comments/${commentId}`, { method: 'DELETE' });
 	}
 };
 

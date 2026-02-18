@@ -208,3 +208,15 @@ export interface AuthState {
 	session: { access_token: string } | null;
 	loading: boolean;
 }
+
+export interface Comment {
+	id: string;
+	place_id: string;
+	user_id: string;
+	body: string;
+	created_at: string;
+	author?: {
+		username: string | null;
+		avatar_url: string | null;
+	};
+}

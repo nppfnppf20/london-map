@@ -1,7 +1,9 @@
 <script lang="ts">
-	import type { Place, TravelProfile } from '$types';
+	import type { Place, TravelProfile, Comment } from '$types';
 	import { getCategoryColor, CATEGORY_LABELS } from '$utils/map-helpers';
 	import { directionsStore, formatDuration, formatDistance, getGoogleMapsUrl } from '$stores/directions';
+	import { commentsApi } from '$services/api';
+	import { authStore } from '$stores/auth';
 	import PlaceImageGallery from '$components/ui/PlaceImageGallery.svelte';
 
 interface Props {
@@ -13,6 +15,74 @@ interface Props {
 let { place, onClose, onAddTo }: Props = $props();
 let gettingLocation = $state(false);
 let locationError = $state<string | null>(null);
+
+let comments = $state<Comment[]>([]);
+let commentsLoading = $state(false);
+let newComment = $state('');
+let submitting = $state(false);
+let commentsError = $state<string | null>(null);
+let commentsEl: HTMLDivElement | undefined;
+let commentInputEl: HTMLTextAreaElement | undefined;
+
+$effect(() => {
+	if (place) {
+		loadComments(place.id);
+	} else {
+		comments = [];
+	}
+});
+
+async function loadComments(placeId: string) {
+	commentsLoading = true;
+	try {
+		comments = await commentsApi.getForPlace(placeId);
+	} catch {
+		// silently fail — comments are non-critical
+	} finally {
+		commentsLoading = false;
+	}
+}
+
+async function handleAddComment() {
+	if (!place || !newComment.trim()) return;
+	submitting = true;
+	commentsError = null;
+	try {
+		const comment = await commentsApi.create(place.id, newComment.trim());
+		comments = [...comments, comment];
+		newComment = '';
+	} catch (e) {
+		commentsError = e instanceof Error ? e.message : 'Failed to post comment';
+	} finally {
+		submitting = false;
+	}
+}
+
+async function handleDeleteComment(commentId: string) {
+	try {
+		await commentsApi.delete(commentId);
+		comments = comments.filter(c => c.id !== commentId);
+	} catch {
+		// silently fail
+	}
+}
+
+function scrollToComments() {
+	commentsEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	setTimeout(() => commentInputEl?.focus(), 300);
+}
+
+function formatRelativeTime(dateStr: string): string {
+	const diff = Date.now() - new Date(dateStr).getTime();
+	const mins = Math.floor(diff / 60000);
+	const hours = Math.floor(mins / 60);
+	const days = Math.floor(hours / 24);
+	if (mins < 1) return 'just now';
+	if (mins < 60) return `${mins}m ago`;
+	if (hours < 24) return `${hours}h ago`;
+	if (days < 7) return `${days}d ago`;
+	return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) {
@@ -144,7 +214,7 @@ let locationError = $state<string | null>(null);
 				<div class="action-buttons secondary">
 					<button class="add-to-btn" onclick={onAddTo}>Add to…</button>
 					<button class="meta-btn" type="button" disabled>Like</button>
-					<button class="meta-btn" type="button" disabled>Comment</button>
+					<button class="meta-btn" type="button" onclick={scrollToComments}>Comment</button>
 				</div>
 				{#if locationError}
 					<p class="error-text">{locationError}</p>
@@ -191,14 +261,62 @@ let locationError = $state<string | null>(null);
 					<p class="no-description">No description available.</p>
 				{/if}
 
-				<div class="comments">
+				<div class="comments" bind:this={commentsEl}>
 					<div class="comments-header">
-						<span class="comments-title">Comments</span>
-						<span class="comments-subtitle">Coming soon</span>
+						<span class="comments-title">Comments{comments.length > 0 ? ` (${comments.length})` : ''}</span>
 					</div>
-					<div class="comments-placeholder">
-						No comments yet.
-					</div>
+
+					{#if commentsLoading}
+						<div class="comments-placeholder">Loading…</div>
+					{:else if comments.length === 0}
+						<div class="comments-placeholder">No comments yet.</div>
+					{:else}
+						<div class="comments-list">
+							{#each comments as comment (comment.id)}
+								<div class="comment">
+									<div class="comment-avatar">
+										{comment.author?.username?.[0]?.toUpperCase() ?? '?'}
+									</div>
+									<div class="comment-body">
+										<div class="comment-meta">
+											<span class="comment-author">{comment.author?.username ?? 'Anonymous'}</span>
+											<span class="comment-time">{formatRelativeTime(comment.created_at)}</span>
+										</div>
+										<p class="comment-text">{comment.body}</p>
+									</div>
+									{#if $authStore.user?.id === comment.user_id || $authStore.user?.role === 'admin'}
+										<button
+											class="comment-delete"
+											onclick={() => handleDeleteComment(comment.id)}
+											aria-label="Delete comment"
+										>×</button>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+
+					{#if $authStore.user}
+						<div class="comment-input-row">
+							<textarea
+								bind:value={newComment}
+								bind:this={commentInputEl}
+								placeholder="Add a comment…"
+								rows={2}
+								disabled={submitting}
+							></textarea>
+							<button
+								class="comment-submit"
+								onclick={handleAddComment}
+								disabled={submitting || !newComment.trim()}
+							>{submitting ? '…' : 'Post'}</button>
+						</div>
+						{#if commentsError}
+							<p class="comments-error">{commentsError}</p>
+						{/if}
+					{:else}
+						<p class="comments-signin">Sign in to leave a comment.</p>
+					{/if}
 				</div>
 			</div>
 
@@ -455,7 +573,6 @@ let locationError = $state<string | null>(null);
 
 	.comments-header {
 		display: flex;
-		justify-content: space-between;
 		align-items: baseline;
 	}
 
@@ -465,11 +582,6 @@ let locationError = $state<string | null>(null);
 		color: #111827;
 	}
 
-	.comments-subtitle {
-		font-size: 12px;
-		color: #9ca3af;
-	}
-
 	.comments-placeholder {
 		padding: 10px 12px;
 		border-radius: var(--radius-md);
@@ -477,6 +589,140 @@ let locationError = $state<string | null>(null);
 		background: #f9fafb;
 		color: #9ca3af;
 		font-size: 13px;
+	}
+
+	.comments-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.comment {
+		display: flex;
+		gap: var(--spacing-sm);
+		align-items: flex-start;
+	}
+
+	.comment-avatar {
+		flex-shrink: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: #e5e7eb;
+		color: #374151;
+		font-size: 12px;
+		font-weight: 700;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.comment-body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.comment-meta {
+		display: flex;
+		gap: var(--spacing-sm);
+		align-items: baseline;
+		margin-bottom: 2px;
+	}
+
+	.comment-author {
+		font-size: 12px;
+		font-weight: 600;
+		color: #111827;
+	}
+
+	.comment-time {
+		font-size: 11px;
+		color: #9ca3af;
+	}
+
+	.comment-text {
+		margin: 0;
+		font-size: 13px;
+		line-height: 1.5;
+		color: #374151;
+		word-break: break-word;
+	}
+
+	.comment-delete {
+		flex-shrink: 0;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: transparent;
+		color: #9ca3af;
+		font-size: 16px;
+		line-height: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+	}
+
+	.comment-delete:hover {
+		background: #fee2e2;
+		color: #ef4444;
+	}
+
+	.comment-input-row {
+		display: flex;
+		gap: var(--spacing-sm);
+		align-items: flex-end;
+		margin-top: var(--spacing-xs);
+	}
+
+	.comment-input-row textarea {
+		flex: 1;
+		padding: 8px 10px;
+		border: 1px solid #e5e7eb;
+		border-radius: var(--radius-md);
+		font-size: 13px;
+		font-family: inherit;
+		resize: none;
+		color: #111827;
+		background: #fff;
+	}
+
+	.comment-input-row textarea:focus {
+		outline: none;
+		border-color: #3b82f6;
+	}
+
+	.comment-input-row textarea:disabled {
+		opacity: 0.6;
+	}
+
+	.comment-submit {
+		flex-shrink: 0;
+		padding: 8px 14px;
+		border-radius: var(--radius-md);
+		background: #111827;
+		color: white;
+		font-size: 12px;
+		font-weight: 600;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.comment-submit:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.comments-error {
+		margin: 0;
+		font-size: 12px;
+		color: #ef4444;
+	}
+
+	.comments-signin {
+		margin: 0;
+		font-size: 12px;
+		color: #9ca3af;
+		font-style: italic;
 	}
 
 	.tags {

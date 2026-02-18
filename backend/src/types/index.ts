@@ -165,6 +165,22 @@ export interface AuthUser {
 	role: Role;
 }
 
+export interface Comment {
+	id: string;
+	place_id: string;
+	user_id: string;
+	body: string;
+	created_at: string;
+	author?: {
+		username: string | null;
+		avatar_url: string | null;
+	};
+}
+
+export interface CreateCommentDto {
+	body: string;
+}
+
 export interface BeaconParticipant {
 	name: string;
 	lat: number;
