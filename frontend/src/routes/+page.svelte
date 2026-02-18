@@ -274,6 +274,18 @@
 			<SearchBar />
 		{/if}
 
+		{#if pinMode}
+			<div class="pin-marker" aria-hidden="true">
+				<svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+					<line x1="18" y1="0"  x2="18" y2="13" stroke="#111827" stroke-width="2" stroke-linecap="round"/>
+					<line x1="18" y1="23" x2="18" y2="36" stroke="#111827" stroke-width="2" stroke-linecap="round"/>
+					<line x1="0"  y1="18" x2="13" y2="18" stroke="#111827" stroke-width="2" stroke-linecap="round"/>
+					<line x1="23" y1="18" x2="36" y2="18" stroke="#111827" stroke-width="2" stroke-linecap="round"/>
+					<circle cx="18" cy="18" r="2.5" fill="#111827"/>
+				</svg>
+			</div>
+		{/if}
+
 			{#if $routeSearchStore.drawing}
 				<button
 					class="draw-fab ui-fab"
@@ -333,7 +345,13 @@
 
 	<section class="menu-pane">
 		<div class="menu-surface">
-			{#if exploreModalOpen}
+			{#if pinMode}
+				<div class="menu-grip" aria-hidden="true"></div>
+				<div class="pin-mode-body">
+					<p class="pin-mode-title">Choose a location</p>
+					<p class="pin-mode-help">Move the map to place + at the centre to choose a location.</p>
+				</div>
+			{:else if exploreModalOpen}
 				<ExploreModal
 					open={exploreModalOpen}
 					onClose={() => exploreModalOpen = false}
@@ -502,7 +520,16 @@
 			{/if}
 		</div>
 
-		{#if !$routeBuilder.active}
+		{#if pinMode}
+			<div class="bottom-bar">
+				<button class="pin-cancel-btn" onclick={cancelPinMode} aria-label="Cancel">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+						<path d="M18 6L6 18M6 6l12 12"/>
+					</svg>
+				</button>
+				<button class="bar-btn ui-btn ui-btn-primary" onclick={confirmPinMode}>Use this spot</button>
+			</div>
+		{:else if !$routeBuilder.active}
 			<div class="bottom-bar">
 				<div class="menu-stack">
 					<button
@@ -568,20 +595,6 @@
 			</div>
 		{/if}
 	</section>
-
-	{#if pinMode}
-		<div class="pin-overlay">
-			<div class="pin-marker" aria-hidden="true"></div>
-			<div class="pin-panel">
-				<p class="pin-title">Place the pin</p>
-				<p class="pin-help">Drag the map to position the pin, or tap to jump.</p>
-				<div class="pin-actions">
-					<button class="pin-btn ui-btn ui-btn-secondary" onclick={cancelPinMode}>Cancel</button>
-					<button class="pin-btn ui-btn ui-btn-primary" onclick={confirmPinMode}>Use this spot</button>
-				</div>
-			</div>
-		</div>
-	{/if}
 
 	{#if $routeSearchStore.drawing}
 		<div class="pin-overlay">
@@ -849,13 +862,52 @@
 		position: absolute;
 		left: 50%;
 		top: 50%;
-		width: 24px;
-		height: 24px;
-		background: var(--color-highlight);
-		border: 3px solid white;
-		border-radius: 50% 50% 50% 0;
-		transform: translate(-50%, -100%) rotate(-45deg);
-		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+		transform: translate(-50%, -50%);
+		z-index: 500;
+		pointer-events: none;
+	}
+
+	.pin-mode-body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-sm);
+		text-align: center;
+		padding: var(--spacing-lg);
+	}
+
+	.pin-mode-title {
+		margin: 0;
+		font-size: 20px;
+		font-weight: 700;
+		color: var(--color-primary);
+	}
+
+	.pin-mode-help {
+		margin: 0;
+		font-size: 14px;
+		color: #6b7280;
+		line-height: 1.4;
+	}
+
+	.pin-cancel-btn {
+		flex-shrink: 0;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: #fef2f2;
+		color: #ef4444;
+		border: 1.5px solid #fecaca;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.pin-cancel-btn:active {
+		background: #fee2e2;
 	}
 
 	.pin-panel {
