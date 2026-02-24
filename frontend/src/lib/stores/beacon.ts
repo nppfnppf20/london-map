@@ -210,6 +210,10 @@ function createBeaconStore() {
 			update(state => ({ ...state, pendingJoinCoords: { lat, lng } }));
 		},
 
+		clearPendingJoinCoords(): void {
+			update(state => ({ ...state, pendingJoinCoords: null }));
+		},
+
 		clear(): void {
 			set(initialState);
 		}

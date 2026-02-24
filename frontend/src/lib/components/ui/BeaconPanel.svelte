@@ -11,7 +11,7 @@
 
 	let { onSelectOnMap }: Props = $props();
 
-	let joinName = $state('');
+	let joinName = $state($beaconStore.responderName || '');
 	let joinStep = $state<'name' | 'groupSize' | 'camera'>('name');
 	let groupSize = $state(2);
 	let pendingCoords = $state<{ lat: number; lng: number } | null>(null);
@@ -24,6 +24,7 @@
 		if (storeCoords && joinStep === 'name') {
 			pendingCoords = storeCoords;
 			joinStep = 'groupSize';
+			beaconStore.clearPendingJoinCoords();
 		}
 	});
 
