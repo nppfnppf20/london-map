@@ -74,22 +74,31 @@
 	);
 	let pendingCelebration = $derived($beaconSessionStore.notifications[0] ?? null);
 	let showCelebration = $state(false);
-	let celebrationData = $state<{ name: string; imagePath: string | null } | null>(null);
+	let celebrationData = $state<{ name: string; imagePath: string | null; token: string } | null>(null);
 
 	$effect(() => {
 		if (beaconContextActive && pendingCelebration && !showCelebration) {
 			celebrationData = {
 				name: pendingCelebration.participantName,
-				imagePath: pendingCelebration.imagePath
+				imagePath: pendingCelebration.imagePath,
+				token: pendingCelebration.token
 			};
 			showCelebration = true;
 		}
 	});
 
 	function onCelebrationDone() {
+		const token = celebrationData?.token ?? null;
 		showCelebration = false;
 		celebrationData = null;
 		beaconSessionStore.shiftNotification();
+
+		if (token) {
+			const session = $beaconSessionStore.sessions.find(s => s.token === token);
+			if (session?.role === 'creator') {
+				beaconStore.resolve(token);
+			}
+		}
 	}
 
 	function toggleScope(scope: 'Friends' | 'Friends of Friends' | 'Public' | 'Private') {
