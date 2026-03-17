@@ -7,177 +7,75 @@
 	import { selectedPlace } from '$stores/selected';
 	import { routeBuilder } from '$stores/routeBuilder';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
-	import type L from 'leaflet';
 	import type { Place, LayerState } from '$types';
+	import type mapboxgl from 'mapbox-gl';
 
 	let mapContainer: HTMLDivElement;
-	let map: L.Map | null = null;
-	let leaflet: typeof L;
-	let markers: Map<string, L.Marker> = new Map();
-	let nearbyCircle: L.Circle | null = null;
+	let map: mapboxgl.Map | null = null;
+	let mb: typeof mapboxgl | null = null;
+
+	type MarkerEntry = { marker: mapboxgl.Marker; el: HTMLDivElement; visible: boolean };
+	let markers: Map<string, MarkerEntry> = new Map();
 	let nearbyIdSet = new Set<string>();
-	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
+
+	let pinClickHandler: ((e: mapboxgl.MapMouseEvent) => void) | null = null;
 
 	export let pinMode = false;
 
-	// Determine how a place should render given current layer state
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
 		if ($routeBuilder.active && place.route === $routeBuilder.routeName && place.route_stop != null) {
 			return 'route';
 		}
 
 		if ($nearbyStore.active) {
-			if (!nearbyIdSet.has(place.id)) {
-				return 'hidden';
-			}
+			if (!nearbyIdSet.has(place.id)) return 'hidden';
 			return $nearbyStore.mode === 'routes' ? 'route' : 'site';
 		}
 
 		if (layers.viewMode === 'routes') {
-			if (place.route && layers.routes[place.route]) {
-				return 'route';
-			}
-			return 'hidden';
+			return place.route && layers.routes[place.route] ? 'route' : 'hidden';
 		}
 
 		if (layers.viewMode === 'collections') {
 			if (!place.collections || place.collections.length === 0) return 'hidden';
 			for (const collection of place.collections) {
-				if (layers.collections[collection.id]) {
-					return 'site';
-				}
+				if (layers.collections[collection.id]) return 'site';
 			}
 			return 'hidden';
 		}
 
 		if (layers.viewMode === 'sites') {
-			if (layers.sites[place.category]) {
-				return 'site';
-			}
-			return 'hidden';
+			return layers.sites[place.category] ? 'site' : 'hidden';
 		}
 
 		return 'hidden';
 	}
 
-	function setPinClickHandling() {
-		if (!map) return;
-		if (pinMode) {
-			if (!pinClickHandler) {
-				pinClickHandler = (e: L.LeafletMouseEvent) => {
-					map!.setView(e.latlng, map!.getZoom(), { animate: true });
-				};
-			}
-			map.on('click', pinClickHandler);
-		} else if (pinClickHandler) {
-			map.off('click', pinClickHandler);
-		}
-	}
-
-	function createIcon(place: Place, mode: 'route' | 'site') {
+	function getMarkerHTML(place: Place, mode: 'route' | 'site'): string {
 		if (mode === 'route') {
 			const color = getRouteColor(place.route);
 			const isSite = place.priority === 'site';
 
 			let badge = '';
 			if (place.route_stop != null) {
-				badge = `<div style="
-					position: absolute;
-					top: -8px;
-					right: -8px;
-					width: 20px;
-					height: 20px;
-					background: white;
-					color: ${color};
-					border-radius: 50%;
-					font-size: 11px;
-					font-weight: 700;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-					line-height: 1;
-				">${place.route_stop}</div>`;
+				badge = `<div style="position:absolute;top:-8px;right:-8px;width:20px;height:20px;background:white;color:${color};border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);line-height:1;">${place.route_stop}</div>`;
 			}
 
 			if (isSite) {
-				return leaflet.divIcon({
-					className: 'custom-marker site-marker',
-					html: `<div style="position:relative;">
-						<div style="
-							width: 32px;
-							height: 32px;
-							background: ${color};
-							border: 4px solid white;
-							border-radius: 50% 50% 50% 0;
-							transform: rotate(-45deg);
-							box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-						"></div>
-						${badge}
-					</div>`,
-					iconSize: [32, 32],
-					iconAnchor: [16, 32],
-					popupAnchor: [0, -32]
-				});
+				return `<div style="position:relative"><div style="width:32px;height:32px;background:${color};border:4px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 8px rgba(0,0,0,0.4);"></div>${badge}</div>`;
 			}
 
-			return leaflet.divIcon({
-				className: 'custom-marker route-marker',
-				html: `<div style="position:relative;">
-					<div style="
-						width: 16px;
-						height: 16px;
-						background: ${color};
-						border: 2px solid white;
-						border-radius: 50%;
-						box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-						opacity: 0.85;
-					"></div>
-					${badge}
-				</div>`,
-				iconSize: [16, 16],
-				iconAnchor: [8, 8],
-				popupAnchor: [0, -8]
-			});
+			return `<div style="position:relative"><div style="width:16px;height:16px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3);opacity:0.85;"></div>${badge}</div>`;
 		}
 
-		// Site mode — category colour, no badge
 		const color = getCategoryColor(place.category);
 		const isSite = place.priority === 'site';
 
 		if (isSite) {
-			return leaflet.divIcon({
-				className: 'custom-marker site-marker',
-				html: `<div style="
-					width: 32px;
-					height: 32px;
-					background: ${color};
-					border: 4px solid white;
-					border-radius: 50% 50% 50% 0;
-					transform: rotate(-45deg);
-					box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-				"></div>`,
-				iconSize: [32, 32],
-				iconAnchor: [16, 32],
-				popupAnchor: [0, -32]
-			});
+			return `<div style="width:32px;height:32px;background:${color};border:4px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 8px rgba(0,0,0,0.4);"></div>`;
 		}
 
-		return leaflet.divIcon({
-			className: 'custom-marker route-marker',
-			html: `<div style="
-				width: 16px;
-				height: 16px;
-				background: ${color};
-				border: 2px solid white;
-				border-radius: 50%;
-				box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-				opacity: 0.85;
-			"></div>`,
-			iconSize: [16, 16],
-			iconAnchor: [8, 8],
-			popupAnchor: [0, -8]
-		});
+		return `<div style="width:16px;height:16px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3);opacity:0.85;"></div>`;
 	}
 
 	function handleMarkerClick(place: Place) {
@@ -186,148 +84,191 @@
 	}
 
 	function addMarker(place: Place) {
-		if (!map) return;
+		if (!map || !mb) return;
 
-		const layers = $layerStore;
-		const mode = getDisplayMode(place, layers);
+		const mode = getDisplayMode(place, $layerStore);
 
 		if (markers.has(place.id)) {
-			const existing = markers.get(place.id)!;
+			const entry = markers.get(place.id)!;
+			entry.el.innerHTML = getMarkerHTML(place, mode === 'hidden' ? 'site' : mode);
+
 			if (mode === 'hidden') {
-				if (map.hasLayer(existing)) existing.remove();
+				if (entry.visible) {
+					entry.marker.remove();
+					entry.visible = false;
+				}
 			} else {
-				existing.setIcon(createIcon(place, mode));
-				if (!map.hasLayer(existing)) existing.addTo(map);
+				if (!entry.visible) {
+					entry.marker.addTo(map);
+					entry.visible = true;
+				}
 			}
 			return;
 		}
 
-		// First time — create the marker
-		const marker = leaflet.marker([place.latitude, place.longitude], {
-			icon: createIcon(place, mode === 'hidden' ? 'site' : mode),
-			zIndexOffset: place.priority === 'site' ? 1000 : 0
+		const el = document.createElement('div');
+		el.style.cssText = 'cursor:pointer;';
+		if (place.priority === 'site') el.style.zIndex = '1000';
+		el.innerHTML = getMarkerHTML(place, mode === 'hidden' ? 'site' : mode);
+		el.addEventListener('click', (e) => {
+			e.stopPropagation();
+			handleMarkerClick(place);
 		});
 
-		marker.on('click', () => handleMarkerClick(place));
-		markers.set(place.id, marker);
+		const anchor: mapboxgl.Anchor = place.priority === 'site' ? 'bottom' : 'center';
+		const marker = new mb.Marker({ element: el, anchor })
+			.setLngLat([place.longitude, place.latitude]);
+
+		const entry: MarkerEntry = { marker, el, visible: false };
+		markers.set(place.id, entry);
 
 		if (mode !== 'hidden') {
 			marker.addTo(map);
+			entry.visible = true;
 		}
 	}
 
 	function updateMarkers() {
 		if (!map) return;
 
-		const layers = $layerStore;
-
-		markers.forEach((marker, id) => {
+		markers.forEach((entry, id) => {
 			const place = $placesStore.places.find(p => p.id === id);
 			if (!place) return;
 
-			const mode = getDisplayMode(place, layers);
+			const mode = getDisplayMode(place, $layerStore);
+			entry.el.innerHTML = getMarkerHTML(place, mode === 'hidden' ? 'site' : mode);
 
 			if (mode === 'hidden') {
-				if (map!.hasLayer(marker)) marker.remove();
+				if (entry.visible) {
+					entry.marker.remove();
+					entry.visible = false;
+				}
 			} else {
-				marker.setIcon(createIcon(place, mode));
-				if (!map!.hasLayer(marker)) marker.addTo(map!);
+				if (!entry.visible) {
+					entry.marker.addTo(map!);
+					entry.visible = true;
+				}
 			}
 		});
 	}
 
+	function circleGeoJSON(center: [number, number], radiusMeters: number) {
+		const [lat, lng] = center;
+		const points = 64;
+		const R = 6371000;
+		const coords = Array.from({ length: points + 1 }, (_, i) => {
+			const angle = (i / points) * 2 * Math.PI;
+			return [
+				lng + (radiusMeters / R) * (180 / Math.PI) / Math.cos((lat * Math.PI) / 180) * Math.sin(angle),
+				lat + (radiusMeters / R) * (180 / Math.PI) * Math.cos(angle)
+			];
+		});
+		return {
+			type: 'FeatureCollection' as const,
+			features: [{
+				type: 'Feature' as const,
+				geometry: { type: 'Polygon' as const, coordinates: [coords] },
+				properties: {}
+			}]
+		};
+	}
+
+	function updateNearbyCircle() {
+		if (!map || !map.isStyleLoaded()) return;
+
+		if ($nearbyStore.active && $nearbyStore.center) {
+			const data = circleGeoJSON($nearbyStore.center, $nearbyStore.radiusMeters);
+			const source = map.getSource('nearby-circle') as mapboxgl.GeoJSONSource | undefined;
+			if (source) {
+				source.setData(data);
+			} else {
+				map.addSource('nearby-circle', { type: 'geojson', data });
+				map.addLayer({ id: 'nearby-circle-fill', type: 'fill', source: 'nearby-circle', paint: { 'fill-color': '#e94560', 'fill-opacity': 0.1 } });
+				map.addLayer({ id: 'nearby-circle-line', type: 'line', source: 'nearby-circle', paint: { 'line-color': '#e94560', 'line-width': 2 } });
+			}
+		} else {
+			if (map.getLayer('nearby-circle-fill')) map.removeLayer('nearby-circle-fill');
+			if (map.getLayer('nearby-circle-line')) map.removeLayer('nearby-circle-line');
+			if (map.getSource('nearby-circle')) map.removeSource('nearby-circle');
+		}
+	}
+
+	function setPinClickHandling() {
+		if (!map) return;
+		if (pinMode) {
+			if (!pinClickHandler) {
+				pinClickHandler = (e: mapboxgl.MapMouseEvent) => {
+					map!.panTo(e.lngLat, { animate: true });
+				};
+			}
+			map.on('click', pinClickHandler);
+		} else if (pinClickHandler) {
+			map.off('click', pinClickHandler);
+		}
+	}
+
 	onMount(async () => {
-		leaflet = await import('leaflet');
+		const mapboxModule = await import('mapbox-gl');
+		mb = mapboxModule.default;
+		mb.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
-		map = leaflet.map(mapContainer, {
-			zoomControl: false,
-			tap: true,
-			tapTolerance: 15,
-			touchZoom: 'center',
-			bounceAtZoomLimits: false
-		}).setView($mapStore.center, $mapStore.zoom);
+		map = new mb.Map({
+			container: mapContainer,
+			style: 'mapbox://styles/mapbox/streets-v12',
+			center: [$mapStore.center[1], $mapStore.center[0]],
+			zoom: $mapStore.zoom,
+			attributionControl: true
+		});
 
-		leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-			maxZoom: 19
-		}).addTo(map);
-
-		leaflet.control.zoom({
-			position: 'bottomright'
-		}).addTo(map);
+		map.addControl(new mb.NavigationControl({ showCompass: false }), 'bottom-right');
 
 		map.on('moveend', () => {
 			if (map) {
-				const center = map.getCenter();
-				mapStore.setCenter([center.lat, center.lng]);
+				const c = map.getCenter();
+				mapStore.setCenter([c.lat, c.lng]);
 			}
 		});
 
 		map.on('zoomend', () => {
-			if (map) {
-				mapStore.setZoom(map.getZoom());
-			}
+			if (map) mapStore.setZoom(map.getZoom());
 		});
+
+		// Wait for style to load before fetching places
+		await new Promise<void>(resolve => map!.once('load', resolve));
 
 		await placesStore.fetchAll();
 		$placesStore.places.forEach(addMarker);
 	});
 
 	onDestroy(() => {
+		markers.forEach(({ marker }) => marker.remove());
+		markers.clear();
 		if (map) {
 			map.remove();
 			map = null;
 		}
-		markers.clear();
 	});
 
-	// React to layer changes — update visibility AND icons
-	$: if (map && $layerStore && $nearbyStore) {
-		updateMarkers();
-	}
+	// React to layer/nearby changes — mb acts as the readiness guard (set once map module loads)
+	$: if (map && mb && $layerStore && $nearbyStore) updateMarkers();
 
 	// React to place data changes
-	$: if (map && leaflet && $placesStore.places) {
-		$placesStore.places.forEach(addMarker);
-	}
+	$: if (map && mb && $placesStore.places) $placesStore.places.forEach(addMarker);
 
+	// Sync nearbyIdSet before updateMarkers reads it
 	$: if ($nearbyStore.active) {
 		nearbyIdSet = new Set($nearbyStore.placeIds);
 	} else {
 		nearbyIdSet = new Set();
 	}
 
-	// Enable/disable pin click behavior for placement mode
-	$: if (map) {
-		setPinClickHandling();
-	}
+	// Nearby circle (guards itself with isStyleLoaded)
+	$: if (map && mb && $nearbyStore) updateNearbyCircle();
 
-	// Render nearby radius overlay
-	$: if (map && leaflet) {
-		if ($nearbyStore.active && $nearbyStore.center) {
-			if (!nearbyCircle) {
-				nearbyCircle = leaflet.circle($nearbyStore.center, {
-					radius: $nearbyStore.radiusMeters,
-					color: '#e94560',
-					weight: 2,
-					fillColor: '#e94560',
-					fillOpacity: 0.1
-				});
-				nearbyCircle.addTo(map);
-			} else {
-				nearbyCircle.setLatLng($nearbyStore.center);
-				nearbyCircle.setRadius($nearbyStore.radiusMeters);
-				if (!map.hasLayer(nearbyCircle)) {
-					nearbyCircle.addTo(map);
-				}
-			}
-		} else if (nearbyCircle) {
-			nearbyCircle.remove();
-			nearbyCircle = null;
-		}
-	}
+	// Enable/disable pin click behaviour
+	$: if (map) setPinClickHandling();
 
-	export function getMap(): L.Map | null {
+	export function getMap(): mapboxgl.Map | null {
 		return map;
 	}
 </script>
@@ -341,21 +282,22 @@
 		touch-action: none;
 	}
 
-	:global(.leaflet-control-zoom) {
-		border: none !important;
-		box-shadow: var(--shadow-md) !important;
+	:global(.mapboxgl-ctrl-bottom-right) {
 		margin-bottom: calc(var(--bottom-bar-height, 0px) + env(safe-area-inset-bottom, 0px) + var(--spacing-md)) !important;
 		margin-right: var(--spacing-md) !important;
 	}
 
-	:global(.leaflet-control-zoom a) {
-		width: 44px !important;
-		height: 44px !important;
-		line-height: 44px !important;
-		font-size: 20px !important;
+	:global(.mapboxgl-ctrl-group) {
+		border: none !important;
+		box-shadow: var(--shadow-md) !important;
 	}
 
-	:global(.leaflet-control-attribution) {
+	:global(.mapboxgl-ctrl-group button) {
+		width: 44px !important;
+		height: 44px !important;
+	}
+
+	:global(.mapboxgl-ctrl-attrib) {
 		font-size: 10px;
 		padding-bottom: env(safe-area-inset-bottom, 0px);
 	}
