@@ -63,8 +63,9 @@
 		right: var(--spacing-md);
 		bottom: calc(var(--bottom-bar-height, 0px) + env(safe-area-inset-bottom, 0px) + var(--spacing-md));
 		z-index: 1150;
-		background: white;
+		background: var(--surface);
 		border-radius: var(--radius-lg);
+		border: 1px solid var(--border);
 		box-shadow: var(--shadow-lg);
 		padding: var(--spacing-sm) var(--spacing-md);
 		display: flex;
@@ -80,11 +81,12 @@
 	}
 
 	.title {
-		font-size: 13px;
-		font-weight: 700;
-		color: var(--color-primary);
+		font-family: var(--font-ui);
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--text-muted);
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.07em;
 	}
 
 	.actions {
@@ -94,16 +96,19 @@
 
 	.ghost {
 		border-radius: 999px;
-		padding: 4px 10px;
+		padding: 4px 12px;
+		font-family: var(--font-ui);
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--color-primary);
-		background: #f3f4f6;
+		color: var(--text-secondary);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border);
 		-webkit-tap-highlight-color: transparent;
+		transition: background 0.12s ease;
 	}
 
 	.ghost:active {
-		background: #e5e7eb;
+		background: var(--border);
 	}
 
 	.radius-row {
@@ -114,19 +119,20 @@
 
 	.radius-row input[type="range"] {
 		flex: 1;
-		accent-color: var(--color-highlight);
+		accent-color: var(--accent);
 	}
 
 	.radius-value {
-		min-width: 64px;
+		min-width: 56px;
 		text-align: right;
+		font-family: var(--font-ui);
 		font-size: 13px;
 		font-weight: 600;
-		color: #374151;
+		color: var(--text);
 	}
 
 	.meta {
 		font-size: 12px;
-		color: #6b7280;
+		color: var(--text-muted);
 	}
 </style>

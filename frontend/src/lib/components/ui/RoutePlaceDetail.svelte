@@ -88,7 +88,7 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: rgba(28, 25, 23, 0.5);
 		z-index: 2000;
 		display: flex;
 		align-items: center;
@@ -97,68 +97,78 @@
 	}
 
 	.detail-panel {
-		background: white;
+		background: var(--surface);
 		width: 100%;
 		max-width: 500px;
 		max-height: 80vh;
-		border-radius: var(--radius-lg);
+		border-radius: var(--radius-xl);
 		display: flex;
 		flex-direction: column;
-		color: var(--color-primary);
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		color: var(--text);
+		box-shadow: var(--shadow-xl);
+		border: 1px solid var(--border);
+		overflow: hidden;
 	}
 
 	.header {
 		position: relative;
 		padding: var(--spacing-lg);
-		border-bottom: 1px solid #e5e7eb;
+		border-bottom: 1px solid var(--border);
 	}
 
 	.title-row {
 		display: flex;
 		gap: var(--spacing-sm);
 		margin-bottom: var(--spacing-sm);
+		flex-wrap: wrap;
 	}
 
 	.category-badge {
-		font-size: 11px;
+		font-family: var(--font-ui);
+		font-size: 10px;
 		font-weight: 600;
 		text-transform: uppercase;
+		letter-spacing: 0.07em;
 		color: white;
-		padding: 2px 8px;
-		border-radius: 4px;
+		padding: 3px 8px;
+		border-radius: 999px;
 	}
 
 	.priority-badge {
-		font-size: 11px;
+		font-family: var(--font-ui);
+		font-size: 10px;
 		font-weight: 600;
 		text-transform: uppercase;
-		padding: 2px 8px;
-		border-radius: 4px;
+		letter-spacing: 0.07em;
+		padding: 3px 8px;
+		border-radius: 999px;
 	}
 
 	.priority-badge.site {
-		background: var(--color-highlight);
-		color: white;
+		background: var(--accent-subtle);
+		color: var(--accent);
 	}
 
 	.priority-badge.route {
-		background: #e5e7eb;
-		color: #6b7280;
+		background: var(--surface-subtle);
+		color: var(--text-muted);
 	}
 
 	h2 {
 		margin: 0;
-		font-size: 20px;
+		font-family: var(--font-display);
+		font-size: 22px;
 		font-weight: 700;
-		line-height: 1.3;
-		padding-right: 40px;
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+		color: var(--text);
+		padding-right: 44px;
 	}
 
 	.route-name {
 		margin: var(--spacing-xs) 0 0 0;
 		font-size: 13px;
-		color: #6b7280;
+		color: var(--text-muted);
 	}
 
 	.actions-row {
@@ -170,30 +180,38 @@
 	}
 
 	.add-btn {
-		padding: 14px 24px;
+		padding: 13px 28px;
 		border-radius: var(--radius-md);
-		background: var(--color-highlight);
+		background: var(--accent);
 		color: white;
-		font-size: 16px;
-		font-weight: 700;
-		box-shadow: 0 10px 20px rgba(233, 69, 96, 0.25);
+		font-family: var(--font-ui);
+		font-size: 15px;
+		font-weight: 600;
+		box-shadow: 0 4px 16px rgba(233, 69, 96, 0.3);
 		-webkit-tap-highlight-color: transparent;
+		transition: opacity 0.12s ease;
+	}
+
+	.add-btn:active {
+		opacity: 0.85;
 	}
 
 	.close-btn {
-		width: 40px;
-		height: 40px;
+		width: 36px;
+		height: 36px;
 		border-radius: 50%;
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		-webkit-tap-highlight-color: transparent;
+		transition: background 0.12s ease;
 	}
 
 	.close-btn:active {
-		background: #e5e7eb;
+		background: var(--border);
 	}
 
 	.content {
@@ -206,8 +224,8 @@
 	.description p {
 		margin: 0 0 var(--spacing-md) 0;
 		font-size: 15px;
-		line-height: 1.6;
-		color: #374151;
+		line-height: 1.65;
+		color: var(--text-secondary);
 	}
 
 	.description p:last-child {
@@ -215,23 +233,27 @@
 	}
 
 	.no-description {
-		color: #9ca3af;
+		color: var(--text-muted);
 		font-style: italic;
+		font-size: 14px;
 	}
 
 	.tags {
 		padding: var(--spacing-md) var(--spacing-lg);
-		border-top: 1px solid #e5e7eb;
+		border-top: 1px solid var(--border);
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--spacing-xs);
+		gap: 6px;
 	}
 
 	.tag {
+		font-family: var(--font-ui);
 		font-size: 12px;
-		background: #f3f4f6;
-		color: #6b7280;
+		font-weight: 500;
+		background: var(--surface-subtle);
+		color: var(--text-muted);
 		padding: 4px 10px;
-		border-radius: 12px;
+		border-radius: 999px;
+		border: 1px solid var(--border);
 	}
 </style>

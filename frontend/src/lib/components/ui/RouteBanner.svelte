@@ -62,10 +62,11 @@
 		left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
 		right: calc(64px + var(--spacing-md) + env(safe-area-inset-right, 0px));
 		z-index: 1001;
-		background: white;
+		background: var(--surface);
 		border-radius: var(--radius-md);
 		box-shadow: var(--shadow-lg);
-		padding: var(--spacing-sm) var(--spacing-md);
+		border: 1px solid var(--border);
+		padding: 10px var(--spacing-md);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -77,12 +78,15 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
+		gap: 2px;
 	}
 
 	.route-name {
-		font-size: 14px;
+		font-family: var(--font-display);
+		font-size: 15px;
 		font-weight: 700;
-		color: var(--color-primary);
+		letter-spacing: -0.01em;
+		color: var(--text);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -90,7 +94,7 @@
 
 	.status {
 		font-size: 12px;
-		color: #6b7280;
+		color: var(--text-muted);
 	}
 
 	.actions {
@@ -100,11 +104,12 @@
 	}
 
 	.btn-undo {
-		width: 36px;
-		height: 36px;
+		width: 34px;
+		height: 34px;
 		border-radius: var(--radius-sm);
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -112,29 +117,31 @@
 	}
 
 	.btn-undo:active:not(:disabled) {
-		background: #e5e7eb;
+		background: var(--border);
 	}
 
 	.btn-cancel,
 	.btn-done {
-		padding: 8px 12px;
+		padding: 7px 12px;
 		border-radius: var(--radius-sm);
+		font-family: var(--font-ui);
 		font-size: 13px;
 		font-weight: 600;
 		-webkit-tap-highlight-color: transparent;
 	}
 
 	.btn-cancel {
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border);
 	}
 
 	.btn-cancel:active:not(:disabled) {
-		background: #e5e7eb;
+		background: var(--border);
 	}
 
 	.btn-done {
-		background: var(--color-highlight);
+		background: var(--accent);
 		color: white;
 	}
 
@@ -145,7 +152,7 @@
 	.btn-done:disabled,
 	.btn-cancel:disabled,
 	.btn-undo:disabled {
-		opacity: 0.4;
+		opacity: 0.35;
 		cursor: not-allowed;
 	}
 </style>

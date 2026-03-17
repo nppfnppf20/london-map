@@ -133,7 +133,7 @@
 		width: 100%;
 		height: 100dvh;
 		min-height: 100dvh;
-		--bottom-bar-height: 64px;
+		--bottom-bar-height: 68px;
 	}
 
 	.bottom-bar {
@@ -145,28 +145,39 @@
 		display: flex;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-sm) var(--spacing-md) calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
-		background: white;
-		border-top: 1px solid #e5e7eb;
-		box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.08);
+		background: rgba(255, 255, 255, 0.92);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border-top: 1px solid var(--border);
+		box-shadow: 0 -4px 24px rgba(60, 50, 40, 0.08);
 	}
 
 	.bar-btn {
 		flex: 1;
-		padding: 12px 14px;
+		padding: 13px 14px;
 		border-radius: var(--radius-md);
-		font-size: 15px;
-		font-weight: 700;
+		font-family: var(--font-ui);
+		font-size: 14px;
+		font-weight: 600;
+		letter-spacing: 0.01em;
 		-webkit-tap-highlight-color: transparent;
+		transition: opacity 0.15s ease;
 	}
 
 	.bar-btn.primary {
-		background: var(--color-highlight);
+		background: var(--accent);
 		color: white;
+		box-shadow: 0 2px 12px rgba(233, 69, 96, 0.3);
 	}
 
 	.bar-btn.secondary {
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border);
+	}
+
+	.bar-btn:active {
+		opacity: 0.82;
 	}
 
 	.pin-overlay {
@@ -185,11 +196,11 @@
 		top: 50%;
 		width: 24px;
 		height: 24px;
-		background: var(--color-highlight);
+		background: var(--accent);
 		border: 3px solid white;
 		border-radius: 50% 50% 50% 0;
 		transform: translate(-50%, -100%) rotate(-45deg);
-		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+		box-shadow: 0 4px 16px rgba(233, 69, 96, 0.45);
 	}
 
 	.pin-panel {
@@ -197,26 +208,30 @@
 		bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px) + 12px);
 		left: 50%;
 		transform: translateX(-50%);
-		background: white;
-		padding: var(--spacing-md);
+		background: var(--surface);
+		padding: var(--spacing-md) var(--spacing-lg);
 		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
+		box-shadow: var(--shadow-xl);
 		text-align: center;
 		max-width: min(340px, 90vw);
 		pointer-events: auto;
+		border: 1px solid var(--border);
 	}
 
 	.pin-title {
 		margin: 0 0 4px;
-		font-size: 16px;
+		font-family: var(--font-display);
+		font-size: 18px;
 		font-weight: 700;
-		color: var(--color-primary);
+		letter-spacing: -0.01em;
+		color: var(--text);
 	}
 
 	.pin-help {
-		margin: 0 0 var(--spacing-sm);
+		margin: 0 0 var(--spacing-md);
 		font-size: 13px;
-		color: #6b7280;
+		color: var(--text-muted);
+		line-height: 1.5;
 	}
 
 	.pin-actions {
@@ -226,25 +241,28 @@
 
 	.pin-btn {
 		flex: 1;
-		padding: 10px 12px;
+		padding: 11px 12px;
 		border-radius: var(--radius-md);
+		font-family: var(--font-ui);
 		font-size: 14px;
 		font-weight: 600;
 		-webkit-tap-highlight-color: transparent;
 		pointer-events: auto;
+		transition: opacity 0.15s ease;
 	}
 
 	.pin-btn.primary {
-		background: var(--color-highlight);
+		background: var(--accent);
 		color: white;
 	}
 
 	.pin-btn.secondary {
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border);
 	}
 
 	.pin-btn:active {
-		opacity: 0.85;
+		opacity: 0.82;
 	}
 </style>
