@@ -234,7 +234,7 @@
 		});
 
 		// Wait for style to load before fetching places
-		await new Promise<void>(resolve => map!.once('load', resolve));
+		await new Promise<void>(resolve => map!.once('load', () => resolve()));
 
 		await placesStore.fetchAll();
 		$placesStore.places.forEach(addMarker);
@@ -288,8 +288,10 @@
 	}
 
 	:global(.mapboxgl-ctrl-group) {
-		border: none !important;
+		border: 1px solid var(--border) !important;
 		box-shadow: var(--shadow-md) !important;
+		border-radius: var(--radius-md) !important;
+		overflow: hidden;
 	}
 
 	:global(.mapboxgl-ctrl-group button) {
@@ -299,6 +301,7 @@
 
 	:global(.mapboxgl-ctrl-attrib) {
 		font-size: 10px;
+		font-family: var(--font-ui);
 		padding-bottom: env(safe-area-inset-bottom, 0px);
 	}
 </style>

@@ -121,7 +121,7 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: rgba(28, 25, 23, 0.5);
 		z-index: 2000;
 		display: flex;
 		align-items: center;
@@ -130,14 +130,15 @@
 	}
 
 	.modal {
-		background: white;
+		background: var(--surface);
 		width: 100%;
 		max-width: 400px;
-		border-radius: var(--radius-lg);
+		border-radius: var(--radius-xl);
+		border: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
-		color: var(--color-primary);
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		color: var(--text);
+		box-shadow: var(--shadow-xl);
 		overflow: hidden;
 	}
 
@@ -146,29 +147,34 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: var(--spacing-lg);
-		border-bottom: 1px solid #e5e7eb;
+		border-bottom: 1px solid var(--border);
 	}
 
 	.header h2 {
 		margin: 0;
-		font-size: 18px;
+		font-family: var(--font-display);
+		font-size: 20px;
 		font-weight: 700;
+		letter-spacing: -0.01em;
+		color: var(--text);
 	}
 
 	.close-btn {
 		width: 40px;
 		height: 40px;
 		border-radius: 50%;
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border);
+		color: var(--text-secondary);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		-webkit-tap-highlight-color: transparent;
+		transition: background 0.12s ease;
 	}
 
 	.close-btn:active {
-		background: #e5e7eb;
+		background: var(--border);
 	}
 
 	.form {
@@ -185,26 +191,28 @@
 	}
 
 	.field label {
+		font-family: var(--font-ui);
 		font-size: 13px;
 		font-weight: 600;
-		color: #374151;
+		color: var(--text-secondary);
 	}
 
 	.field input {
 		padding: 10px 12px;
-		border: 1px solid #d1d5db;
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-md);
 		font-size: 15px;
 		font-family: inherit;
-		color: var(--color-primary);
-		background: white;
+		color: var(--text);
+		background: var(--surface-input);
 		-webkit-appearance: none;
+		transition: border-color 0.12s ease, box-shadow 0.12s ease;
 	}
 
 	.field input:focus {
 		outline: none;
-		border-color: var(--color-highlight);
-		box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px var(--accent-subtle);
 	}
 
 	.swatches {
@@ -224,7 +232,7 @@
 	}
 
 	.swatch.selected {
-		border-color: var(--color-primary);
+		border-color: var(--text);
 		transform: scale(1.15);
 	}
 
@@ -234,16 +242,17 @@
 
 	.hint {
 		font-size: 13px;
-		color: #6b7280;
-		background: #f9fafb;
+		color: var(--text-muted);
+		background: var(--surface-raised);
 		padding: var(--spacing-sm) var(--spacing-md);
 		border-radius: var(--radius-sm);
 	}
 
 	.error {
 		font-size: 13px;
-		color: #dc2626;
-		background: #fef2f2;
+		color: var(--accent);
+		background: rgba(233, 69, 96, 0.08);
+		border: 1px solid rgba(233, 69, 96, 0.2);
 		padding: var(--spacing-sm) var(--spacing-md);
 		border-radius: var(--radius-sm);
 	}
@@ -259,22 +268,25 @@
 		flex: 1;
 		padding: 12px;
 		border-radius: var(--radius-md);
+		font-family: var(--font-ui);
 		font-size: 15px;
 		font-weight: 600;
 		-webkit-tap-highlight-color: transparent;
+		transition: opacity 0.12s ease, background 0.12s ease;
 	}
 
 	.btn-cancel {
-		background: #f3f4f6;
-		color: #374151;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border);
 	}
 
 	.btn-cancel:active {
-		background: #e5e7eb;
+		background: var(--border);
 	}
 
 	.btn-start {
-		background: var(--color-highlight);
+		background: var(--accent);
 		color: white;
 	}
 
