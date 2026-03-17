@@ -10,8 +10,8 @@
 	import { directionsStore } from '$stores/directions';
 	import { beaconStore } from '$stores/beacon';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
-	import type L from 'leaflet';
 	import type { Place, LayerState } from '$types';
+	import type mapboxgl from 'mapbox-gl';
 
 	const COLLECTION_FALLBACK_COLOR = '#94a3b8';
 
@@ -26,39 +26,92 @@
 	}
 
 	let mapContainer: HTMLDivElement;
-	let map: L.Map | null = null;
-	let leaflet: typeof L;
-	let markers: Map<string, L.Marker> = new Map();
-	let nearbyCircle: L.Circle | null = null;
-	let routeLine: L.Polyline | null = null;
-	let directionsLine: L.Polyline | null = null;
+	let map: mapboxgl.Map | null = null;
+	let mb: typeof mapboxgl | null = null;
+
+	type MarkerEntry = { marker: mapboxgl.Marker; el: HTMLDivElement; visible: boolean };
+	let markers: Map<string, MarkerEntry> = new Map();
+
 	let nearbyIdSet = new Set<string>();
 	let routeIdSet = new Set<string>();
 	let beaconIdSet = new Set<string>();
-	let pinClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
-	let drawLine: L.Polyline | null = null;
-	let isDrawingStroke = false;
-	let drawPoints: L.LatLng[] = [];
-	let wasDrawing = false;
 	let lastFlyToTrigger = 0;
-	let locationMarker: L.Marker | null = null;
-	let locationAccuracyCircle: L.Circle | null = null;
-	let watchId: number | null = null;
 	let expandedRoute: string | null = null;
-	let tourLine: L.Polyline | null = null;
-	let beaconMarkers: L.Marker[] = [];
-	let beaconMidpointMarker: L.Marker | null = null;
-	let beaconCircle: L.Circle | null = null;
 	let routePreviewIds = new Set<string>();
+
+	// Drawing state
+	let isDrawingStroke = false;
+	let drawPoints: [number, number][] = []; // [lng, lat] pairs for mapbox
+	let wasDrawing = false;
+
+	// Location watch
+	let watchId: number | null = null;
+	let locationMarkerEl: HTMLDivElement | null = null;
+	let locationMarker: mapboxgl.Marker | null = null;
+	let locationAccuracyMarker: mapboxgl.Marker | null = null;
+
+	// Beacon markers
+	let beaconMarkers: mapboxgl.Marker[] = [];
+	let beaconMidpointMarker: mapboxgl.Marker | null = null;
 
 	export let pinMode = false;
 
-	// For routes viewMode: find the single "preview" place per route
+	// ---------- GeoJSON circle helper ----------
+	function circleGeoJSON(center: [number, number], radiusMeters: number) {
+		const [lat, lng] = center;
+		const points = 64;
+		const R = 6371000;
+		const coords = Array.from({ length: points + 1 }, (_, i) => {
+			const angle = (i / points) * 2 * Math.PI;
+			return [
+				lng + (radiusMeters / R) * (180 / Math.PI) / Math.cos((lat * Math.PI) / 180) * Math.sin(angle),
+				lat + (radiusMeters / R) * (180 / Math.PI) * Math.cos(angle)
+			];
+		});
+		return {
+			type: 'FeatureCollection' as const,
+			features: [{
+				type: 'Feature' as const,
+				geometry: { type: 'Polygon' as const, coordinates: [coords] },
+				properties: {}
+			}]
+		};
+	}
+
+	function lineGeoJSON(points: [number, number][]) {
+		// points are [lng, lat]
+		return {
+			type: 'FeatureCollection' as const,
+			features: points.length >= 2 ? [{
+				type: 'Feature' as const,
+				geometry: { type: 'LineString' as const, coordinates: points },
+				properties: {}
+			}] : []
+		};
+	}
+
+	// ---------- Layer management helpers ----------
+	function ensureSource(id: string, data: GeoJSON.GeoJSON) {
+		if (!map) return;
+		if (map.getSource(id)) {
+			(map.getSource(id) as mapboxgl.GeoJSONSource).setData(data);
+		} else {
+			map.addSource(id, { type: 'geojson', data });
+		}
+	}
+
+	function removeLayerAndSource(id: string) {
+		if (!map) return;
+		if (map.getLayer(id + '-fill')) map.removeLayer(id + '-fill');
+		if (map.getLayer(id + '-line')) map.removeLayer(id + '-line');
+		if (map.getLayer(id)) map.removeLayer(id);
+		if (map.getSource(id)) map.removeSource(id);
+	}
+
+	// ---------- Route preview ----------
 	function getRoutePreviewIds(layers: LayerState): Set<string> {
 		const previewIds = new Set<string>();
 		const places = $placesStore.places;
-
-		// Group places by route name (only enabled routes)
 		const routePlaces: Record<string, Place[]> = {};
 		for (const place of places) {
 			if (place.route && layers.routes[place.route]) {
@@ -66,8 +119,6 @@
 				routePlaces[place.route].push(place);
 			}
 		}
-
-		// Pick the first stop (lowest route_stop) or first place if none numbered
 		for (const routeName of Object.keys(routePlaces)) {
 			const rPlaces = routePlaces[routeName];
 			const numbered = rPlaces.filter(p => p.route_stop != null).sort((a, b) => a.route_stop! - b.route_stop!);
@@ -77,169 +128,82 @@
 				previewIds.add(rPlaces[0].id);
 			}
 		}
-
 		return previewIds;
 	}
 
+	// ---------- Tour line ----------
 	function drawTourLine(routeName: string) {
-		if (!map || !leaflet) return;
-
-		// Remove existing tour line
-		if (tourLine) {
-			tourLine.remove();
-			tourLine = null;
-		}
-
+		if (!map || !mb) return;
 		const places = $placesStore.places
 			.filter(p => p.route === routeName)
 			.sort((a, b) => (a.route_stop ?? 999) - (b.route_stop ?? 999));
-
 		if (places.length < 2) return;
-
-		const latlngs = places.map(p => leaflet.latLng(p.latitude, p.longitude));
 		const color = getRouteColor(routeName);
-
-		tourLine = leaflet.polyline(latlngs, {
-			color,
-			weight: 4,
-			opacity: 0.7,
-			lineCap: 'round',
-			lineJoin: 'round',
-			dashArray: '8, 12'
-		}).addTo(map);
-	}
-
-	function clearTourLine() {
-		if (tourLine) {
-			tourLine.remove();
-			tourLine = null;
+		const coords = places.map(p => [p.longitude, p.latitude] as [number, number]);
+		const data = lineGeoJSON(coords);
+		ensureSource('tour-line', data);
+		if (!map.getLayer('tour-line')) {
+			map.addLayer({
+				id: 'tour-line',
+				type: 'line',
+				source: 'tour-line',
+				layout: { 'line-cap': 'round', 'line-join': 'round' },
+				paint: {
+					'line-color': color,
+					'line-width': 4,
+					'line-opacity': 0.7,
+					'line-dasharray': [2, 3]
+				}
+			});
 		}
 	}
 
-	// Determine how a place should render given current layer state
+	function clearTourLine() {
+		if (!map) return;
+		removeLayerAndSource('tour-line');
+	}
+
+	// ---------- Visibility / display mode ----------
 	function getDisplayMode(place: Place, layers: LayerState): 'route' | 'site' | 'hidden' {
 		if ($routeBuilder.active && place.route === $routeBuilder.routeName && place.route_stop != null) {
 			return 'route';
 		}
-
 		if ($beaconStore.active) {
-			if (!beaconIdSet.has(place.id)) {
-				return 'hidden';
-			}
-			return 'site';
+			return beaconIdSet.has(place.id) ? 'site' : 'hidden';
 		}
-
 		if ($routeSearchStore.active) {
-			if (!routeIdSet.has(place.id)) {
-				return 'hidden';
-			}
+			if (!routeIdSet.has(place.id)) return 'hidden';
 			return $routeSearchStore.mode === 'routes' ? 'route' : 'site';
 		}
-
 		if ($nearbyStore.active) {
-			if (!nearbyIdSet.has(place.id)) {
-				return 'hidden';
-			}
+			if (!nearbyIdSet.has(place.id)) return 'hidden';
 			return $nearbyStore.mode === 'routes' ? 'route' : 'site';
 		}
-
 		if (layers.viewMode === 'routes') {
 			if (place.route && layers.routes[place.route]) {
-				// If this route is expanded, show all its stops
-				if (expandedRoute === place.route) {
-					return 'route';
-				}
-				// Otherwise only show the preview marker
-				if (routePreviewIds.has(place.id)) {
-					return 'route';
-				}
+				if (expandedRoute === place.route) return 'route';
+				if (routePreviewIds.has(place.id)) return 'route';
 			}
 			return 'hidden';
 		}
-
 		if (layers.viewMode === 'collections') {
 			if (!place.collections || place.collections.length === 0) return 'hidden';
 			for (const collection of place.collections) {
-				if (layers.collections[collection.id]) {
-					return 'site';
-				}
+				if (layers.collections[collection.id]) return 'site';
 			}
 			return 'hidden';
 		}
-
 		if (layers.viewMode === 'sites') {
-			if (layers.sites[place.category]) {
-				return 'site';
-			}
-			return 'hidden';
+			return layers.sites[place.category] ? 'site' : 'hidden';
 		}
-
 		return 'hidden';
 	}
 
-	function setPinClickHandling() {
-		if (!map) return;
-		if (pinMode) {
-			if (!pinClickHandler) {
-				pinClickHandler = (e: L.LeafletMouseEvent) => {
-					map!.setView(e.latlng, map!.getZoom(), { animate: true });
-				};
-			}
-			map.on('click', pinClickHandler);
-		} else if (pinClickHandler) {
-			map.off('click', pinClickHandler);
-		}
-	}
+	// ---------- Marker element creation ----------
+	function createMarkerEl(place: Place, mode: 'route' | 'site', colorOverride?: string): HTMLDivElement {
+		const el = document.createElement('div');
+		el.style.cursor = 'pointer';
 
-	function updateDrawingLine(): void {
-		if (!map || !leaflet) return;
-		if (!drawLine) {
-			drawLine = leaflet.polyline(drawPoints, {
-				color: '#e94560',
-				weight: 4,
-				opacity: 0.9,
-				lineCap: 'round'
-			}).addTo(map);
-		} else {
-			drawLine.setLatLngs(drawPoints);
-		}
-	}
-
-	function handleDrawStart(e: L.LeafletMouseEvent) {
-		if (!map || !$routeSearchStore.drawing) return;
-		isDrawingStroke = true;
-		if (drawPoints.length === 0) {
-			drawPoints = [e.latlng];
-		} else {
-			drawPoints.push(e.latlng);
-		}
-		routeSearchStore.setLine(drawPoints.map(point => [point.lat, point.lng]));
-		updateDrawingLine();
-	}
-
-	function handleDrawMove(e: L.LeafletMouseEvent) {
-		if (!map || !$routeSearchStore.drawing) return;
-		if (!$routeSearchStore.painting && !isDrawingStroke) return;
-		const last = drawPoints[drawPoints.length - 1];
-		if (!last) {
-			drawPoints = [e.latlng];
-			routeSearchStore.setLine(drawPoints.map(point => [point.lat, point.lng]));
-			updateDrawingLine();
-			return;
-		}
-		const distance = last.distanceTo(e.latlng);
-		if (distance < 20) return;
-		drawPoints.push(e.latlng);
-		routeSearchStore.setLine(drawPoints.map(point => [point.lat, point.lng]));
-		updateDrawingLine();
-	}
-
-	function handleDrawEnd() {
-		if (!isDrawingStroke) return;
-		isDrawingStroke = false;
-	}
-
-	function createIcon(place: Place, mode: 'route' | 'site', colorOverride?: string) {
 		if (mode === 'route') {
 			const color = getRouteColor(place.route);
 			const isSite = place.priority === 'site';
@@ -266,54 +230,10 @@
 			}
 
 			if (isSite) {
-				return leaflet.divIcon({
-					className: 'custom-marker site-marker',
-					html: `<div style="position:relative;">
-						<div style="
-							width: 32px;
-							height: 32px;
-							background: ${color};
-							border: 4px solid white;
-							border-radius: 50% 50% 50% 0;
-							transform: rotate(-45deg);
-							box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-						"></div>
-						${badge}
-					</div>`,
-					iconSize: [32, 32],
-					iconAnchor: [16, 32],
-					popupAnchor: [0, -32]
-				});
-			}
-
-			return leaflet.divIcon({
-				className: 'custom-marker route-marker',
-				html: `<div style="position:relative;">
-					<div style="
-						width: 16px;
-						height: 16px;
-						background: ${color};
-						border: 2px solid white;
-						border-radius: 50%;
-						box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-						opacity: 0.85;
-					"></div>
-					${badge}
-				</div>`,
-				iconSize: [16, 16],
-				iconAnchor: [8, 8],
-				popupAnchor: [0, -8]
-			});
-		}
-
-		// Site mode — category colour (or override), no badge
-		const color = colorOverride || getCategoryColor(place.category);
-		const isSite = place.priority === 'site';
-
-		if (isSite) {
-			return leaflet.divIcon({
-				className: 'custom-marker site-marker',
-				html: `<div style="
+				el.style.width = '32px';
+				el.style.height = '32px';
+				el.style.position = 'relative';
+				el.innerHTML = `<div style="
 					width: 32px;
 					height: 32px;
 					background: ${color};
@@ -321,16 +241,44 @@
 					border-radius: 50% 50% 50% 0;
 					transform: rotate(-45deg);
 					box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-				"></div>`,
-				iconSize: [32, 32],
-				iconAnchor: [16, 32],
-				popupAnchor: [0, -32]
-			});
+				"></div>${badge}`;
+			} else {
+				el.style.width = '16px';
+				el.style.height = '16px';
+				el.style.position = 'relative';
+				el.innerHTML = `<div style="
+					width: 16px;
+					height: 16px;
+					background: ${color};
+					border: 2px solid white;
+					border-radius: 50%;
+					box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+					opacity: 0.85;
+				"></div>${badge}`;
+			}
+			return el;
 		}
 
-		return leaflet.divIcon({
-			className: 'custom-marker route-marker',
-			html: `<div style="
+		// Site mode
+		const color = colorOverride || getCategoryColor(place.category);
+		const isSite = place.priority === 'site';
+
+		if (isSite) {
+			el.style.width = '32px';
+			el.style.height = '32px';
+			el.innerHTML = `<div style="
+				width: 32px;
+				height: 32px;
+				background: ${color};
+				border: 4px solid white;
+				border-radius: 50% 50% 50% 0;
+				transform: rotate(-45deg);
+				box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+			"></div>`;
+		} else {
+			el.style.width = '16px';
+			el.style.height = '16px';
+			el.innerHTML = `<div style="
 				width: 16px;
 				height: 16px;
 				background: ${color};
@@ -338,19 +286,14 @@
 				border-radius: 50%;
 				box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 				opacity: 0.85;
-			"></div>`,
-			iconSize: [16, 16],
-			iconAnchor: [8, 8],
-			popupAnchor: [0, -8]
-		});
+			"></div>`;
+		}
+		return el;
 	}
 
 	function handleMarkerClick(place: Place) {
 		if (pinMode) return;
-
 		const layers = $layerStore;
-
-		// In routes viewMode, clicking a preview marker expands the tour
 		if (layers.viewMode === 'routes' && place.route && !expandedRoute) {
 			if (routePreviewIds.has(place.id)) {
 				expandedRoute = place.route;
@@ -359,156 +302,226 @@
 				return;
 			}
 		}
-
-		// If a tour is expanded and user clicks a stop, show its detail
-		// Clicking the map backdrop or toggling will collapse (handled elsewhere)
 		selectedPlace.select(place);
 	}
 
-	function updateLocationMarker(lat: number, lng: number, accuracy: number) {
-		if (!map || !leaflet) return;
-
-		const latlng = leaflet.latLng(lat, lng);
-
-		// Create or update the accuracy circle
-		if (!locationAccuracyCircle) {
-			locationAccuracyCircle = leaflet.circle(latlng, {
-				radius: accuracy,
-				color: '#3b82f6',
-				fillColor: '#3b82f6',
-				fillOpacity: 0.1,
-				weight: 1,
-				opacity: 0.3
-			}).addTo(map);
-		} else {
-			locationAccuracyCircle.setLatLng(latlng);
-			locationAccuracyCircle.setRadius(accuracy);
-		}
-
-		// Create or update the location dot
-		if (!locationMarker) {
-			const locationIcon = leaflet.divIcon({
-				className: 'current-location-marker',
-				html: `<div class="location-dot">
-					<div class="location-dot-inner"></div>
-					<div class="location-dot-pulse"></div>
-				</div>`,
-				iconSize: [20, 20],
-				iconAnchor: [10, 10]
-			});
-			locationMarker = leaflet.marker(latlng, {
-				icon: locationIcon,
-				zIndexOffset: 2000
-			}).addTo(map);
-		} else {
-			locationMarker.setLatLng(latlng);
-		}
-	}
-
-	function startLocationWatch() {
-		if (!navigator.geolocation) return;
-
-		watchId = navigator.geolocation.watchPosition(
-			(position) => {
-				updateLocationMarker(
-					position.coords.latitude,
-					position.coords.longitude,
-					position.coords.accuracy
-				);
-			},
-			(error) => {
-				console.warn('Geolocation error:', error.message);
-			},
-			{
-				enableHighAccuracy: true,
-				timeout: 10000,
-				maximumAge: 5000
-			}
-		);
-	}
-
+	// ---------- Marker add/update ----------
 	function addMarker(place: Place) {
-		if (!map) return;
-
+		if (!map || !mb) return;
 		const layers = $layerStore;
 		const mode = getDisplayMode(place, layers);
 		const collectionColor = layers.viewMode === 'collections' && mode !== 'hidden'
 			? getCollectionColor(place, layers) : undefined;
 
 		if (markers.has(place.id)) {
-			const existing = markers.get(place.id)!;
+			const entry = markers.get(place.id)!;
 			if (mode === 'hidden') {
-				if (map.hasLayer(existing)) existing.remove();
+				if (entry.visible) {
+					entry.marker.remove();
+					entry.visible = false;
+				}
 			} else {
-				existing.setIcon(createIcon(place, mode, collectionColor));
-				if (!map.hasLayer(existing)) existing.addTo(map);
+				// Update icon by replacing element content
+				const newEl = createMarkerEl(place, mode, collectionColor);
+				entry.el.innerHTML = newEl.innerHTML;
+				entry.el.style.width = newEl.style.width;
+				entry.el.style.height = newEl.style.height;
+				if (!entry.visible) {
+					entry.marker.addTo(map!);
+					entry.visible = true;
+				}
 			}
 			return;
 		}
 
-		// First time — create the marker
-		const marker = leaflet.marker([place.latitude, place.longitude], {
-			icon: createIcon(place, mode === 'hidden' ? 'site' : mode, collectionColor),
-			zIndexOffset: place.priority === 'site' ? 1000 : 0
-		});
+		// First time — create marker
+		const el = createMarkerEl(place, mode === 'hidden' ? 'site' : mode, collectionColor);
+		const anchor = place.priority === 'site' ? 'bottom-left' : 'center';
+		const marker = new mb.Marker({ element: el, anchor })
+			.setLngLat([place.longitude, place.latitude]);
 
-		marker.on('click', () => handleMarkerClick(place));
-		markers.set(place.id, marker);
+		el.addEventListener('click', () => handleMarkerClick(place));
+
+		const entry: MarkerEntry = { marker, el, visible: mode !== 'hidden' };
+		markers.set(place.id, entry);
 
 		if (mode !== 'hidden') {
-			marker.addTo(map);
+			marker.addTo(map!);
 		}
 	}
 
 	function updateMarkers() {
-		if (!map) return;
-
+		if (!map || !mb) return;
 		const layers = $layerStore;
-
-		markers.forEach((marker, id) => {
+		markers.forEach((entry, id) => {
 			const place = $placesStore.places.find(p => p.id === id);
 			if (!place) return;
-
 			const mode = getDisplayMode(place, layers);
-
 			if (mode === 'hidden') {
-				if (map!.hasLayer(marker)) marker.remove();
+				if (entry.visible) {
+					entry.marker.remove();
+					entry.visible = false;
+				}
 			} else {
 				const collectionColor = layers.viewMode === 'collections'
 					? getCollectionColor(place, layers) : undefined;
-				marker.setIcon(createIcon(place, mode, collectionColor));
-				if (!map!.hasLayer(marker)) marker.addTo(map!);
+				const newEl = createMarkerEl(place, mode, collectionColor);
+				entry.el.innerHTML = newEl.innerHTML;
+				entry.el.style.width = newEl.style.width;
+				entry.el.style.height = newEl.style.height;
+				if (!entry.visible) {
+					entry.marker.addTo(map!);
+					entry.visible = true;
+				}
 			}
 		});
 	}
 
+	// ---------- Location ----------
+	function updateLocationMarker(lat: number, lng: number, accuracy: number) {
+		if (!map || !mb) return;
+
+		// Accuracy circle
+		const circleData = circleGeoJSON([lat, lng], accuracy);
+		ensureSource('location-accuracy', circleData);
+		if (!map.getLayer('location-accuracy-fill')) {
+			map.addLayer({
+				id: 'location-accuracy-fill',
+				type: 'fill',
+				source: 'location-accuracy',
+				paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.1 }
+			});
+			map.addLayer({
+				id: 'location-accuracy-line',
+				type: 'line',
+				source: 'location-accuracy',
+				paint: { 'line-color': '#3b82f6', 'line-width': 1, 'line-opacity': 0.3 }
+			});
+		}
+
+		// Location dot marker
+		if (!locationMarker) {
+			locationMarkerEl = document.createElement('div');
+			locationMarkerEl.className = 'location-dot-wrap';
+			locationMarkerEl.innerHTML = `<div class="location-dot">
+				<div class="location-dot-inner"></div>
+				<div class="location-dot-pulse"></div>
+			</div>`;
+			locationMarker = new mb.Marker({ element: locationMarkerEl, anchor: 'center' })
+				.setLngLat([lng, lat])
+				.addTo(map);
+		} else {
+			locationMarker.setLngLat([lng, lat]);
+		}
+	}
+
+	function startLocationWatch() {
+		if (!navigator.geolocation) return;
+		watchId = navigator.geolocation.watchPosition(
+			(pos) => updateLocationMarker(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+			(err) => console.warn('Geolocation error:', err.message),
+			{ enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+		);
+	}
+
+	// ---------- Drawing ----------
+	function getMapPoint(e: MouseEvent | TouchEvent): { lng: number; lat: number } | null {
+		if (!map) return null;
+		const rect = mapContainer.getBoundingClientRect();
+		let clientX: number, clientY: number;
+		if (e instanceof TouchEvent) {
+			if (!e.touches[0]) return null;
+			clientX = e.touches[0].clientX;
+			clientY = e.touches[0].clientY;
+		} else {
+			clientX = e.clientX;
+			clientY = e.clientY;
+		}
+		const x = clientX - rect.left;
+		const y = clientY - rect.top;
+		return map.unproject([x, y]);
+	}
+
+	function handleDrawStart(e: MouseEvent | TouchEvent) {
+		if (!map || !$routeSearchStore.drawing) return;
+		const pt = getMapPoint(e);
+		if (!pt) return;
+		isDrawingStroke = true;
+		const coord: [number, number] = [pt.lng, pt.lat];
+		if (drawPoints.length === 0) {
+			drawPoints = [coord];
+		} else {
+			drawPoints.push(coord);
+		}
+		routeSearchStore.setLine(drawPoints.map(([lng, lat]) => [lat, lng]));
+		updateDrawLine();
+	}
+
+	function handleDrawMove(e: MouseEvent | TouchEvent) {
+		if (!map || !$routeSearchStore.drawing) return;
+		if (!$routeSearchStore.painting && !isDrawingStroke) return;
+		const pt = getMapPoint(e);
+		if (!pt) return;
+		const coord: [number, number] = [pt.lng, pt.lat];
+		if (drawPoints.length === 0) {
+			drawPoints = [coord];
+		} else {
+			const last = drawPoints[drawPoints.length - 1];
+			const dx = (pt.lng - last[0]) * 111000;
+			const dy = (pt.lat - last[1]) * 111000;
+			if (Math.sqrt(dx * dx + dy * dy) < 20) return;
+			drawPoints.push(coord);
+		}
+		routeSearchStore.setLine(drawPoints.map(([lng, lat]) => [lat, lng]));
+		updateDrawLine();
+	}
+
+	function handleDrawEnd() {
+		isDrawingStroke = false;
+	}
+
+	function updateDrawLine() {
+		if (!map) return;
+		const data = lineGeoJSON(drawPoints);
+		ensureSource('draw-line', data);
+		if (!map.getLayer('draw-line')) {
+			map.addLayer({
+				id: 'draw-line',
+				type: 'line',
+				source: 'draw-line',
+				layout: { 'line-cap': 'round', 'line-join': 'round' },
+				paint: { 'line-color': '#e94560', 'line-width': 4, 'line-opacity': 0.9 }
+			});
+		}
+	}
+
+	// ---------- Mount ----------
 	onMount(async () => {
-		leaflet = await import('leaflet');
+		const mapboxModule = await import('mapbox-gl');
+		mb = mapboxModule.default;
 
-		map = leaflet.map(mapContainer, {
-			zoomControl: false,
-			tap: true,
-			tapTolerance: 15,
-			touchZoom: 'center',
-			bounceAtZoomLimits: false
-		}).setView($mapStore.center, $mapStore.zoom);
+		mb.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
-		leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-			maxZoom: 19
-		}).addTo(map);
+		map = new mb.Map({
+			container: mapContainer,
+			style: 'mapbox://styles/mapbox/streets-v12',
+			center: [$mapStore.center[1], $mapStore.center[0]],
+			zoom: $mapStore.zoom,
+			attributionControl: false
+		});
+
+		map.addControl(new mb.AttributionControl({ compact: true }), 'bottom-right');
+		map.addControl(new mb.NavigationControl({ showCompass: false }), 'bottom-right');
 
 		map.on('moveend', () => {
 			if (map) {
-				const center = map.getCenter();
-				mapStore.setCenter([center.lat, center.lng]);
+				const c = map.getCenter();
+				mapStore.setCenter([c.lat, c.lng]);
 			}
 		});
 
 		map.on('zoomend', () => {
-			if (map) {
-				mapStore.setZoom(map.getZoom());
-			}
+			if (map) mapStore.setZoom(map.getZoom());
 		});
 
 		map.on('click', () => {
@@ -519,19 +532,26 @@
 			}
 		});
 
-		map.on('mousedown', handleDrawStart);
-		map.on('mousemove', handleDrawMove);
-		map.on('mouseup', handleDrawEnd);
-		map.on('mouseout', handleDrawEnd);
-		map.on('touchstart', (e: L.LeafletMouseEvent) => handleDrawStart(e));
-		map.on('touchmove', (e: L.LeafletMouseEvent) => handleDrawMove(e));
-		map.on('touchend', () => handleDrawEnd());
+		// Drawing event listeners
+		mapContainer.addEventListener('mousedown', handleDrawStart);
+		mapContainer.addEventListener('mousemove', handleDrawMove);
+		mapContainer.addEventListener('mouseup', handleDrawEnd);
+		mapContainer.addEventListener('mouseleave', handleDrawEnd);
+		mapContainer.addEventListener('touchstart', handleDrawStart, { passive: true });
+		mapContainer.addEventListener('touchmove', handleDrawMove, { passive: true });
+		mapContainer.addEventListener('touchend', handleDrawEnd);
 
+		// Fetch places and add DOM markers immediately — they don't need the style to load
 		await placesStore.fetchAll();
 		$placesStore.places.forEach(addMarker);
 
-		// Start watching user location
 		startLocationWatch();
+
+		// Wait for style to load so GeoJSON layers (circles, lines) work correctly
+		// This is non-blocking for markers above
+		if (!map.isStyleLoaded()) {
+			await new Promise<void>(resolve => map!.once('load', () => resolve()));
+		}
 	});
 
 	onDestroy(() => {
@@ -543,261 +563,206 @@
 			map.remove();
 			map = null;
 		}
-		if (routeLine) {
-			routeLine.remove();
-			routeLine = null;
-		}
-		if (directionsLine) {
-			directionsLine.remove();
-			directionsLine = null;
-		}
-		if (drawLine) {
-			drawLine.remove();
-			drawLine = null;
-		}
-		if (tourLine) {
-			tourLine.remove();
-			tourLine = null;
-		}
 		markers.clear();
 	});
 
-	// React to layer changes — update visibility AND icons
-	$: if (map && $layerStore && $nearbyStore && $routeSearchStore) {
-		routePreviewIds = getRoutePreviewIds($layerStore);
+	// ---------- Reactive statements ----------
 
-		// Collapse expanded tour if we switched away from routes viewMode
-		// or if the expanded route was toggled off
+	// Layer / viewMode changes
+	$: if (map && mb && $layerStore && $nearbyStore && $routeSearchStore) {
+		routePreviewIds = getRoutePreviewIds($layerStore);
 		if ($layerStore.viewMode !== 'routes' || (expandedRoute && !$layerStore.routes[expandedRoute])) {
 			expandedRoute = null;
 			clearTourLine();
 		}
-
 		updateMarkers();
 	}
 
-	// React to place data changes
-	$: if (map && leaflet && $placesStore.places) {
+	// Places data changes
+	$: if (map && mb && $placesStore.places) {
 		$placesStore.places.forEach(addMarker);
 	}
 
-	$: if ($nearbyStore.active) {
-		nearbyIdSet = new Set($nearbyStore.placeIds);
-	} else {
-		nearbyIdSet = new Set();
-	}
-
-	$: if ($routeSearchStore.active) {
-		routeIdSet = new Set($routeSearchStore.placeIds);
-	} else {
-		routeIdSet = new Set();
-	}
+	$: nearbyIdSet = $nearbyStore.active ? new Set($nearbyStore.placeIds) : new Set<string>();
+	$: routeIdSet = $routeSearchStore.active ? new Set($routeSearchStore.placeIds) : new Set<string>();
 
 	$: if ($beaconStore.active) {
 		beaconIdSet = new Set($beaconStore.placeIds);
-		updateMarkers();
+		if (map && mb) updateMarkers();
 	} else {
 		beaconIdSet = new Set();
 	}
 
-	// Enable/disable pin click behavior for placement mode
-	$: if (map) {
-		setPinClickHandling();
-	}
-
-	// React to flyTo requests from the store
-	$: if (map && $mapStore.flyToTrigger > lastFlyToTrigger) {
+	// FlyTo
+	$: if (map && mb && $mapStore.flyToTrigger > lastFlyToTrigger) {
 		lastFlyToTrigger = $mapStore.flyToTrigger;
-		map.flyTo($mapStore.center, $mapStore.zoom, { duration: 0.8 });
+		map.flyTo({ center: [$mapStore.center[1], $mapStore.center[0]], zoom: $mapStore.zoom, duration: 800 });
 	}
 
-	// Toggle drawing mode
-	$: if (map) {
+	// Drawing mode toggle
+	$: if (map && mb) {
 		if ($routeSearchStore.drawing) {
-			if (!wasDrawing) {
-				drawPoints = [];
-			}
-			map.dragging.disable();
-			if ($routeSearchStore.painting) {
-				map.getContainer().style.cursor = 'crosshair';
-			} else {
-				map.getContainer().style.cursor = '';
-			}
+			if (!wasDrawing) drawPoints = [];
+			map.dragPan.disable();
+			map.dragRotate.disable();
+			mapContainer.style.cursor = $routeSearchStore.painting ? 'crosshair' : '';
 			wasDrawing = true;
 		} else {
-			map.dragging.enable();
-			map.getContainer().style.cursor = '';
-			if (drawLine) {
-				drawLine.remove();
-				drawLine = null;
-			}
+			map.dragPan.enable();
+			map.dragRotate.enable();
+			mapContainer.style.cursor = '';
+			if (map.getLayer('draw-line')) map.removeLayer('draw-line');
+			if (map.getSource('draw-line')) map.removeSource('draw-line');
 			wasDrawing = false;
 		}
 	}
 
-	// Render nearby radius overlay
-	$: if (map && leaflet) {
+	// Nearby circle overlay
+	$: if (map && mb) {
 		if ($nearbyStore.active && $nearbyStore.center) {
-			if (!nearbyCircle) {
-				nearbyCircle = leaflet.circle($nearbyStore.center, {
-					radius: $nearbyStore.radiusMeters,
-					color: '#e94560',
-					weight: 2,
-					fillColor: '#e94560',
-					fillOpacity: 0.1
+			const data = circleGeoJSON($nearbyStore.center, $nearbyStore.radiusMeters);
+			ensureSource('nearby-circle', data);
+			if (!map.getLayer('nearby-circle-fill')) {
+				map.addLayer({
+					id: 'nearby-circle-fill',
+					type: 'fill',
+					source: 'nearby-circle',
+					paint: { 'fill-color': '#e94560', 'fill-opacity': 0.1 }
 				});
-				nearbyCircle.addTo(map);
-			} else {
-				nearbyCircle.setLatLng($nearbyStore.center);
-				nearbyCircle.setRadius($nearbyStore.radiusMeters);
-				if (!map.hasLayer(nearbyCircle)) {
-					nearbyCircle.addTo(map);
-				}
+				map.addLayer({
+					id: 'nearby-circle-line',
+					type: 'line',
+					source: 'nearby-circle',
+					paint: { 'line-color': '#e94560', 'line-width': 2 }
+				});
 			}
-		} else if (nearbyCircle) {
-			nearbyCircle.remove();
-			nearbyCircle = null;
+		} else {
+			if (map.getLayer('nearby-circle-fill')) map.removeLayer('nearby-circle-fill');
+			if (map.getLayer('nearby-circle-line')) map.removeLayer('nearby-circle-line');
+			if (map.getSource('nearby-circle')) map.removeSource('nearby-circle');
 		}
 	}
 
-	// Render beacon overlays (fire markers for creator + all participants, midpoint, radius circle)
-	$: if (map && leaflet) {
+	// Beacon overlays
+	$: if (map && mb) {
+		// Remove old beacon markers
+		beaconMarkers.forEach(m => m.remove());
+		beaconMarkers = [];
+		if (beaconMidpointMarker) { beaconMidpointMarker.remove(); beaconMidpointMarker = null; }
+		if (map.getLayer('beacon-circle-fill')) map.removeLayer('beacon-circle-fill');
+		if (map.getLayer('beacon-circle-line')) map.removeLayer('beacon-circle-line');
+		if (map.getSource('beacon-circle')) map.removeSource('beacon-circle');
+
 		if ($beaconStore.active && $beaconStore.midpoint && $beaconStore.beacon) {
 			const beacon = $beaconStore.beacon;
 			const midpoint = $beaconStore.midpoint;
 
-			// Clear old fire markers
-			beaconMarkers.forEach(m => m.remove());
-			beaconMarkers = [];
+			const makeFireEl = () => {
+				const el = document.createElement('div');
+				el.style.fontSize = '28px';
+				el.style.lineHeight = '1';
+				el.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))';
+				el.textContent = '🔥';
+				return el;
+			};
 
-			const fireIcon = leaflet.divIcon({
-				className: 'custom-marker',
-				html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">🔥</div>',
-				iconSize: [28, 28],
-				iconAnchor: [14, 28],
-				popupAnchor: [0, -28]
-			});
-
-			// Creator marker
-			const creatorMarker = leaflet.marker([beacon.creator_lat, beacon.creator_lng], {
-				icon: fireIcon,
-				zIndexOffset: 2500
-			}).addTo(map);
-			creatorMarker.bindPopup(`<b>${beacon.creator_name}</b>`);
+			const creatorEl = makeFireEl();
+			const creatorMarker = new mb!.Marker({ element: creatorEl, anchor: 'bottom' })
+				.setLngLat([beacon.creator_lng, beacon.creator_lat])
+				.addTo(map);
 			beaconMarkers.push(creatorMarker);
 
-			// Participant markers
 			for (const p of beacon.participants) {
-				const pMarker = leaflet.marker([p.lat, p.lng], {
-					icon: fireIcon,
-					zIndexOffset: 2500
-				}).addTo(map);
-				pMarker.bindPopup(`<b>${p.name}</b>`);
+				const pEl = makeFireEl();
+				const pMarker = new mb!.Marker({ element: pEl, anchor: 'bottom' })
+					.setLngLat([p.lng, p.lat])
+					.addTo(map);
 				beaconMarkers.push(pMarker);
 			}
 
-			// Midpoint marker
-			if (!beaconMidpointMarker) {
-				const midpointIcon = leaflet.divIcon({
-					className: 'custom-marker',
-					html: `<div style="
-						width: 14px;
-						height: 14px;
-						background: #f59e0b;
-						border: 3px solid white;
-						border-radius: 50%;
-						box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-					"></div>`,
-					iconSize: [14, 14],
-					iconAnchor: [7, 7]
-				});
-				beaconMidpointMarker = leaflet.marker(midpoint, {
-					icon: midpointIcon,
-					zIndexOffset: 2000
-				}).addTo(map);
-				beaconMidpointMarker.bindPopup('Meeting midpoint');
-			} else {
-				beaconMidpointMarker.setLatLng(midpoint);
-			}
+			const midEl = document.createElement('div');
+			midEl.style.width = '14px';
+			midEl.style.height = '14px';
+			midEl.style.background = '#f59e0b';
+			midEl.style.border = '3px solid white';
+			midEl.style.borderRadius = '50%';
+			midEl.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)';
+			beaconMidpointMarker = new mb!.Marker({ element: midEl, anchor: 'center' })
+				.setLngLat([midpoint[1], midpoint[0]])
+				.addTo(map);
 
-			// 1km radius circle around midpoint
-			if (!beaconCircle) {
-				beaconCircle = leaflet.circle(midpoint, {
-					radius: 1000,
-					color: '#f59e0b',
-					weight: 2,
-					fillColor: '#f59e0b',
-					fillOpacity: 0.08
-				}).addTo(map);
-			} else {
-				beaconCircle.setLatLng(midpoint);
+			const beaconCircleData = circleGeoJSON(midpoint, 1000);
+			ensureSource('beacon-circle', beaconCircleData);
+			map.addLayer({
+				id: 'beacon-circle-fill',
+				type: 'fill',
+				source: 'beacon-circle',
+				paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.08 }
+			});
+			map.addLayer({
+				id: 'beacon-circle-line',
+				type: 'line',
+				source: 'beacon-circle',
+				paint: { 'line-color': '#f59e0b', 'line-width': 2 }
+			});
+		}
+	}
+
+	// Route search line overlay
+	$: if (map && mb) {
+		if ($routeSearchStore.drawing) {
+			if (map.getLayer('route-line')) map.removeLayer('route-line');
+			if (map.getSource('route-line')) map.removeSource('route-line');
+		} else if ($routeSearchStore.line.length > 0) {
+			// routeSearchStore.line is [lat, lng] — convert to [lng, lat] for mapbox
+			const coords = $routeSearchStore.line.map(([lat, lng]) => [lng, lat] as [number, number]);
+			const data = lineGeoJSON(coords);
+			ensureSource('route-line', data);
+			if (!map.getLayer('route-line')) {
+				map.addLayer({
+					id: 'route-line',
+					type: 'line',
+					source: 'route-line',
+					layout: { 'line-cap': 'round', 'line-join': 'round' },
+					paint: { 'line-color': '#111827', 'line-width': 4, 'line-opacity': 0.85 }
+				});
 			}
 		} else {
-			beaconMarkers.forEach(m => m.remove());
-			beaconMarkers = [];
-			if (beaconMidpointMarker) { beaconMidpointMarker.remove(); beaconMidpointMarker = null; }
-			if (beaconCircle) { beaconCircle.remove(); beaconCircle = null; }
+			if (map.getLayer('route-line')) map.removeLayer('route-line');
+			if (map.getSource('route-line')) map.removeSource('route-line');
 		}
 	}
 
-	// Render route line overlay
-	$: if (map && leaflet) {
-		if ($routeSearchStore.drawing) {
-			if (routeLine) {
-				routeLine.remove();
-				routeLine = null;
-			}
-		} else if ($routeSearchStore.line.length > 0) {
-			const latlngs = $routeSearchStore.line.map(point => leaflet.latLng(point[0], point[1]));
-			if (!routeLine) {
-				routeLine = leaflet.polyline(latlngs, {
-					color: '#111827',
-					weight: 4,
-					opacity: 0.85,
-					lineCap: 'round'
-				}).addTo(map);
-			} else {
-				routeLine.setLatLngs(latlngs);
-				if (!map.hasLayer(routeLine)) {
-					routeLine.addTo(map);
-				}
-			}
-		} else if (routeLine) {
-			routeLine.remove();
-			routeLine = null;
-		}
-	}
-
-	// Render directions polyline (from OpenRouteService)
-	$: if (map && leaflet) {
+	// Directions polyline
+	$: if (map && mb) {
 		if ($directionsStore.active && $directionsStore.result?.geometry) {
-			// ORS returns [lng, lat] pairs, Leaflet needs [lat, lng]
-			const latlngs = $directionsStore.result.geometry.map(
-				coord => leaflet.latLng(coord[1], coord[0])
-			);
-			if (!directionsLine) {
-				directionsLine = leaflet.polyline(latlngs, {
-					color: '#3b82f6',
-					weight: 5,
-					opacity: 0.8,
-					lineCap: 'round',
-					lineJoin: 'round'
-				}).addTo(map);
-				// Fit map to show the entire route
-				map.fitBounds(directionsLine.getBounds(), { padding: [50, 50] });
-			} else {
-				directionsLine.setLatLngs(latlngs);
-				if (!map.hasLayer(directionsLine)) {
-					directionsLine.addTo(map);
-				}
+			// ORS returns [lng, lat] pairs
+			const coords = $directionsStore.result.geometry as [number, number][];
+			const data = lineGeoJSON(coords);
+			ensureSource('directions-line', data);
+			if (!map.getLayer('directions-line')) {
+				map.addLayer({
+					id: 'directions-line',
+					type: 'line',
+					source: 'directions-line',
+					layout: { 'line-cap': 'round', 'line-join': 'round' },
+					paint: { 'line-color': '#3b82f6', 'line-width': 5, 'line-opacity': 0.8 }
+				});
+				// Fit map to route
+				const lngs = coords.map(c => c[0]);
+				const lats = coords.map(c => c[1]);
+				map.fitBounds(
+					[[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+					{ padding: 50 }
+				);
 			}
-		} else if (directionsLine) {
-			directionsLine.remove();
-			directionsLine = null;
+		} else {
+			if (map.getLayer('directions-line')) map.removeLayer('directions-line');
+			if (map.getSource('directions-line')) map.removeSource('directions-line');
 		}
 	}
 
-	export function getMap(): L.Map | null {
+	export function getMap(): mapboxgl.Map | null {
 		return map;
 	}
 </script>
@@ -811,14 +776,19 @@
 		touch-action: none;
 	}
 
-	:global(.leaflet-control-attribution) {
-		font-size: 10px;
-		padding-bottom: env(safe-area-inset-bottom, 0px);
+	:global(.mapboxgl-ctrl-group) {
+		border: 1px solid var(--border) !important;
+		box-shadow: var(--shadow-md) !important;
+		border-radius: var(--radius-md) !important;
+		overflow: hidden;
 	}
 
-	:global(.current-location-marker) {
-		background: transparent !important;
-		border: none !important;
+	:global(.mapboxgl-ctrl-attrib) {
+		font-size: 10px;
+	}
+
+	:global(.location-dot-wrap) {
+		background: transparent;
 	}
 
 	:global(.location-dot) {
