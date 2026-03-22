@@ -10,6 +10,7 @@
 	import { directionsStore } from '$stores/directions';
 	import { beaconStore } from '$stores/beacon';
 	import { getCategoryColor, getRouteColor } from '$utils/map-helpers';
+	import 'leaflet/dist/leaflet.css';
 	import type L from 'leaflet';
 	import type { Place, LayerState } from '$types';
 
@@ -483,7 +484,8 @@
 	}
 
 	onMount(async () => {
-		leaflet = await import('leaflet');
+		const mod = await import('leaflet');
+		leaflet = (mod.default ?? mod) as typeof L;
 
 		map = leaflet.map(mapContainer, {
 			zoomControl: false,
@@ -526,6 +528,9 @@
 		map.on('touchstart', (e: L.LeafletMouseEvent) => handleDrawStart(e));
 		map.on('touchmove', (e: L.LeafletMouseEvent) => handleDrawMove(e));
 		map.on('touchend', () => handleDrawEnd());
+
+		// Force layout recalc in case container size wasn't settled
+		map.invalidateSize();
 
 		await placesStore.fetchAll();
 		$placesStore.places.forEach(addMarker);
@@ -806,8 +811,8 @@
 
 <style>
 	.map-container {
-		width: 100%;
-		height: 100%;
+		position: absolute;
+		inset: 0;
 		touch-action: none;
 	}
 
